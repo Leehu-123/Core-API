@@ -1,0 +1,48 @@
+version: '3.8'
+
+services:
+  postgres:
+    image: postgres:16-alpine
+    container_name: antigrapvity-postgres
+    environment:
+      POSTGRES_USER: antigrapvity_user
+      POSTGRES_PASSWORD: ChangeMe123!
+      POSTGRES_DB: antigrapvity_db
+    ports:
+      - '5432:5432'
+    volumes:
+      - ./postgres_data:/var/lib/postgresql/data
+      - ./docker/postgres/init.sql:/docker-entrypoint-initdb.d/init.sql
+    healthcheck:
+      test: ['CMD-SHELL', 'pg_isready -U antigrapvity_user -d antigrapvity_db']
+      interval: 10s
+      timeout: 5s
+      retries: 5
+    networks:
+      - core-network
+
+  core-api:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    container_name: core-api-app
+    depends_on:
+      postgres:
+        condition: service_healthy
+    ports:
+      - '3003:3003'
+    env_file:
+      - .env
+    environment:
+      DATABASE_URL: postgresql://antigrapvity_user:ChangeMe123!@postgres:5432/antigrapvity_db
+    volumes:
+      - ./backups:/app/backups
+    command: >-
+      sh -c "npx prisma migrate deploy && node dist/main"
+    networks:
+      - core-network
+
+
+networks:
+  core-network:
+    driver: bridge

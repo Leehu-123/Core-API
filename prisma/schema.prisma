@@ -1,0 +1,1037 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+model Company {
+  id        String   @id @default(uuid()) @db.Uuid
+  name      String
+  code      String   @unique
+  taxCode   String?  @map("tax_code")
+  address   String?
+  phone     String?
+  email     String?
+  isActive  Boolean  @default(true) @map("is_active")
+  createdAt DateTime @default(now()) @map("created_at")
+  updatedAt DateTime @updatedAt @map("updated_at")
+  deletedAt DateTime? @map("deleted_at")
+
+  users      User[]
+  products   Product[]
+  customers  Customer[]
+  roles      Role[]
+  auditLogs  AuditLog[]
+
+  @@map("companies")
+}
+
+model User {
+  id           String    @id @default(uuid()) @db.Uuid
+  companyId    String    @map("company_id") @db.Uuid
+  email        String?   @unique
+  username     String?   @unique
+  passwordHash String    @map("password_hash")
+  fullName     String    @map("full_name")
+  phone        String?
+  isActive     Boolean   @default(true) @map("is_active")
+  lastLoginAt  DateTime? @map("last_login_at")
+  createdAt    DateTime  @default(now()) @map("created_at")
+  updatedAt    DateTime  @updatedAt @map("updated_at")
+  deletedAt    DateTime? @map("deleted_at")
+  createdById  String?   @map("created_by_id") @db.Uuid
+  updatedById  String?   @map("updated_by_id") @db.Uuid
+  teamId       String?   @map("team_id") @db.Uuid
+  avatar       String?
+
+  company    Company     @relation(fields: [companyId], references: [id])
+  createdBy  User?       @relation("UserCreatedBy", fields: [createdById], references: [id])
+  updatedBy  User?       @relation("UserUpdatedBy", fields: [updatedById], references: [id])
+  createdUsers User[]    @relation("UserCreatedBy")
+  updatedUsers User[]    @relation("UserUpdatedBy")
+  userRoles  UserRole[]
+  auditLogs  AuditLog[]
+  createdProducts Product[] @relation("ProductCreatedBy")
+  updatedProducts Product[] @relation("ProductUpdatedBy")
+  createdCustomers Customer[] @relation("CustomerCreatedBy")
+  updatedCustomers Customer[] @relation("CustomerUpdatedBy")
+  
+  // Relations to inventory models
+  stockMovements        StockMovement[]
+  goodsReceiptsCreated  GoodsReceipt[]  @relation("ReceiptCreatedBy")
+  goodsReceiptsReceived GoodsReceipt[]  @relation("ReceiptReceivedBy")
+  goodsReceiptsApproved GoodsReceipt[]  @relation("ReceiptApprovedBy")
+  goodsIssuesCreated    GoodsIssue[]    @relation("IssueCreatedBy")
+  goodsIssuesApproved   GoodsIssue[]    @relation("IssueApprovedBy")
+  processingOrdersCreated  ProcessingOrder[] @relation("ProcessingCreatedBy")
+  processingOrdersApproved ProcessingOrder[] @relation("ProcessingApprovedBy")
+  damageReportsReported DamageReport[]  @relation("DamageReportedBy")
+  damageReportsApproved DamageReport[]  @relation("DamageApprovedBy")
+  stocktakesCreated     Stocktake[]     @relation("StocktakeCreatedBy")
+  stocktakesApproved    Stocktake[]     @relation("StocktakeApprovedBy")
+  adjustmentsCreated    StockAdjustment[] @relation("AdjustmentCreatedBy")
+  adjustmentsApproved   StockAdjustment[] @relation("AdjustmentApprovedBy")
+  attachments           Attachment[]
+  team                  Team?               @relation(fields: [teamId], references: [id], onDelete: SetNull)
+  assignedCustomers     Customer[]          @relation("CustomerAssignedTo")
+  opportunitiesAssigned Opportunity[]
+  quotesCreated         Quote[]
+  salesOrdersAssigned   SalesOrder[]
+  salesTasksAssigned    SalesTask[]         @relation("SalesTaskAssignedTo")
+  salesTasksCreated     SalesTask[]         @relation("SalesTaskCreatedBy")
+  kpis                  KPI[]
+  customerInteractions  CustomerInteraction[]
+  orderPaymentsCreated  SalesOrderPayment[]
+  businessTrips         BusinessTrip[]
+
+  @@map("users")
+}
+
+model Role {
+  id          String   @id @default(uuid()) @db.Uuid
+  companyId   String?  @map("company_id") @db.Uuid
+  name        String
+  description String?
+  isSystem    Boolean  @default(false) @map("is_system")
+  createdAt   DateTime @default(now()) @map("created_at")
+  updatedAt   DateTime @updatedAt @map("updated_at")
+  deletedAt   DateTime? @map("deleted_at")
+
+  company         Company?         @relation(fields: [companyId], references: [id])
+  userRoles       UserRole[]
+  rolePermissions RolePermission[]
+
+  @@unique([companyId, name])
+  @@map("roles")
+}
+
+model Permission {
+  id          String   @id @default(uuid()) @db.Uuid
+  name        String   @unique
+  description String?
+  createdAt   DateTime @default(now()) @map("created_at")
+  updatedAt   DateTime @updatedAt @map("updated_at")
+
+  rolePermissions RolePermission[]
+
+  @@map("permissions")
+}
+
+model UserRole {
+  id        String   @id @default(uuid()) @db.Uuid
+  userId    String   @map("user_id") @db.Uuid
+  roleId    String   @map("role_id") @db.Uuid
+  createdAt DateTime @default(now()) @map("created_at")
+
+  user User @relation(fields: [userId], references: [id])
+  role Role @relation(fields: [roleId], references: [id])
+
+  @@unique([userId, roleId])
+  @@map("user_roles")
+}
+
+model RolePermission {
+  id           String   @id @default(uuid()) @db.Uuid
+  roleId       String   @map("role_id") @db.Uuid
+  permissionId String   @map("permission_id") @db.Uuid
+  createdAt    DateTime @default(now()) @map("created_at")
+
+  role       Role       @relation(fields: [roleId], references: [id])
+  permission Permission @relation(fields: [permissionId], references: [id])
+
+  @@unique([roleId, permissionId])
+  @@map("role_permissions")
+}
+
+model Product {
+  id          String   @id @default(uuid()) @db.Uuid
+  companyId   String   @map("company_id") @db.Uuid
+  sku         String
+  name        String
+  description String?
+  unit        String?
+  barcode     String?
+  costPrice   Decimal  @default(0) @map("cost_price") @db.Decimal(18, 4)
+  salePrice   Decimal  @default(0) @map("sale_price") @db.Decimal(18, 4)
+  isActive    Boolean  @default(true) @map("is_active")
+  createdAt   DateTime @default(now()) @map("created_at")
+  updatedAt   DateTime @updatedAt @map("updated_at")
+  deletedAt   DateTime? @map("deleted_at")
+  createdById String?  @map("created_by_id") @db.Uuid
+  updatedById String?  @map("updated_by_id") @db.Uuid
+
+  code         String?
+  glassType    String   @default("khac") @map("glass_type")
+  thickness    Float    @default(0)
+  color        String   @default("trong")
+  standardSize String   @default("-") @map("standard_size")
+  lengthMm     Float    @default(0) @map("length_mm")
+  widthMm      Float    @default(0) @map("width_mm")
+  areaM2       Float    @default(0) @map("area_m2")
+  minStock     Int      @default(0) @map("min_stock")
+  supplierId   String?  @map("supplier_id") @db.Uuid
+
+  company   Company @relation(fields: [companyId], references: [id])
+  createdBy User?   @relation("ProductCreatedBy", fields: [createdById], references: [id])
+  updatedBy User?   @relation("ProductUpdatedBy", fields: [updatedById], references: [id])
+  supplier  Supplier? @relation(fields: [supplierId], references: [id])
+
+  // Relations to inventory models
+  inventory         Inventory[]
+  stockMovements    StockMovement[]
+  goodsReceiptLines GoodsReceiptLine[]
+  goodsIssueLines   GoodsIssueLine[]
+  processingInputs  ProcessingInput[]
+  processingWastes  ProcessingWaste[]
+  damageReports     DamageReport[]
+  stocktakeLines    StocktakeLine[]
+  adjustmentLines   StockAdjustmentLine[]
+  quoteItems        QuoteItem[]
+  salesOrderItems   SalesOrderItem[]
+
+  @@unique([companyId, sku])
+  @@index([glassType])
+  @@index([thickness])
+  @@index([color])
+  @@index([supplierId])
+  @@map("products")
+}
+
+model Customer {
+  id        String   @id @default(uuid()) @db.Uuid
+  companyId String   @map("company_id") @db.Uuid
+  code      String
+  name      String
+  phone     String?
+  email     String?
+  address   String?
+  taxCode   String?  @map("tax_code")
+  note      String?
+  isActive  Boolean  @default(true) @map("is_active")
+  createdAt DateTime @default(now()) @map("created_at")
+  updatedAt DateTime @updatedAt @map("updated_at")
+  deletedAt DateTime? @map("deleted_at")
+  createdById String? @map("created_by_id") @db.Uuid
+  updatedById     String?    @map("updated_by_id") @db.Uuid
+  customerType    String?    @map("customer_type")
+  contactPerson   String?    @map("contact_person")
+  province        String?
+  projectName     String?    @map("project_name")
+  source          String?
+  assignedToId    String?    @map("assigned_to_id") @db.Uuid
+  crmStatus       String?    @default("NEW") @map("crm_status")
+  productNeeds    String?    @map("product_needs")
+  estimatedArea   Float?     @map("estimated_area")
+  estimatedBudget Float?     @map("estimated_budget")
+  nextFollowUpDate DateTime? @map("next_follow_up_date")
+
+  company   Company @relation(fields: [companyId], references: [id])
+  createdBy User?   @relation("CustomerCreatedBy", fields: [createdById], references: [id])
+  updatedBy User?   @relation("CustomerUpdatedBy", fields: [updatedById], references: [id])
+
+  // Relations to inventory models
+  goodsIssues       GoodsIssue[]
+  processingOrders  ProcessingOrder[]
+  processingOutputs ProcessingOutput[]
+  assignedTo        User?               @relation("CustomerAssignedTo", fields: [assignedToId], references: [id], onDelete: SetNull)
+  interactions      CustomerInteraction[]
+  opportunities     Opportunity[]
+  quotes            Quote[]
+  salesOrders       SalesOrder[]
+  salesTasks        SalesTask[]
+
+  @@index([assignedToId])
+  @@index([crmStatus])
+  @@unique([companyId, code])
+  @@map("customers")
+}
+
+model AuditLog {
+  id        String   @id @default(uuid()) @db.Uuid
+  companyId String?  @map("company_id") @db.Uuid
+  userId    String?  @map("user_id") @db.Uuid
+  action    String
+  entity    String
+  entityId  String?  @map("entity_id")
+  oldValue  Json?    @map("old_value")
+  newValue  Json?    @map("new_value")
+  ipAddress String?  @map("ip_address")
+  userAgent String?  @map("user_agent")
+  createdAt DateTime @default(now()) @map("created_at")
+
+  company Company? @relation(fields: [companyId], references: [id])
+  user    User?    @relation(fields: [userId], references: [id])
+
+  @@index([entity])
+  @@index([action])
+  @@index([companyId])
+  @@index([userId])
+  @@index([createdAt])
+  @@map("audit_logs")
+}
+
+model BackupLog {
+  id                String    @id @default(uuid()) @db.Uuid
+  filename          String
+  status            String
+  sizeBytes         BigInt?   @map("size_bytes")
+  googleDriveFileId String?   @map("google_drive_file_id")
+  errorMessage      String?   @map("error_message")
+  startedAt         DateTime  @map("started_at")
+  finishedAt        DateTime? @map("finished_at")
+
+  @@map("backup_logs")
+}
+
+model Supplier {
+  id        String   @id @default(uuid()) @db.Uuid
+  companyId String   @map("company_id") @db.Uuid
+  code      String
+  name      String
+  phone     String?
+  address   String?
+  email     String?
+  note      String?
+  isActive  Boolean  @default(true) @map("is_active")
+  createdAt DateTime @default(now()) @map("created_at")
+  updatedAt DateTime @updatedAt @map("updated_at")
+
+  products      Product[]
+  goodsReceipts GoodsReceipt[]
+
+  @@unique([companyId, code])
+  @@index([isActive])
+  @@map("suppliers")
+}
+
+model Location {
+  id          String   @id @default(uuid()) @db.Uuid
+  companyId   String   @map("company_id") @db.Uuid
+  code        String
+  name        String
+  zone        String   // A-F
+  description String?
+  isActive    Boolean  @default(true) @map("is_active")
+  createdAt   DateTime @default(now()) @map("created_at")
+  updatedAt   DateTime @updatedAt @map("updated_at")
+
+  inventory           Inventory[]
+  stockMovementsFrom  StockMovement[]    @relation("MovementFromLocation")
+  stockMovementsTo    StockMovement[]    @relation("MovementToLocation")
+  goodsReceiptLines   GoodsReceiptLine[]
+  goodsIssueLines     GoodsIssueLine[]
+  processingInputs    ProcessingInput[]
+  processingOutputs   ProcessingOutput[]
+  damageReports       DamageReport[]
+  stocktakeLines      StocktakeLine[]
+  adjustmentLines     StockAdjustmentLine[]
+
+  @@unique([companyId, code])
+  @@index([zone])
+  @@index([isActive])
+  @@map("locations")
+}
+
+model Inventory {
+  id         String   @id @default(uuid()) @db.Uuid
+  companyId  String   @map("company_id") @db.Uuid
+  productId  String   @map("product_id") @db.Uuid
+  locationId String   @map("location_id") @db.Uuid
+  quantity   Int      @default(0)
+  status     String   // tot, cho_kiem, cho_xuat, cho_gia_cong, dang_gia_cong, thanh_pham, loi, vo, xuoc, me, cho_xu_ly
+  batchNo    String?  @map("batch_no")
+  orderRef   String?  @map("order_ref")
+  note       String?
+  updatedAt  DateTime @updatedAt @map("updated_at")
+
+  product  Product  @relation(fields: [productId], references: [id])
+  location Location @relation(fields: [locationId], references: [id])
+
+  @@unique([companyId, productId, locationId, status])
+  @@index([productId])
+  @@index([locationId])
+  @@index([status])
+  @@map("inventory")
+}
+
+model StockMovement {
+  id             String   @id @default(uuid()) @db.Uuid
+  companyId      String   @map("company_id") @db.Uuid
+  type           String   // nhap, xuat, dieu_chinh, gia_cong_xuat, gia_cong_nhap, chuyen_vi_tri, huy
+  refType        String   @map("ref_type") // goods_receipt, goods_issue, processing_order, damage_report, stock_adjustment, stocktake
+  refId          String   @map("ref_id") @db.Uuid
+  productId      String   @map("product_id") @db.Uuid
+  fromLocationId String?  @map("from_location_id") @db.Uuid
+  toLocationId   String?  @map("to_location_id") @db.Uuid
+  quantity       Int
+  statusBefore   String?  @map("status_before")
+  statusAfter    String?  @map("status_after")
+  note           String?
+  createdById    String   @map("created_by_id") @db.Uuid
+  createdAt      DateTime @default(now()) @map("created_at")
+
+  product      Product   @relation(fields: [productId], references: [id])
+  fromLocation Location? @relation("MovementFromLocation", fields: [fromLocationId], references: [id])
+  toLocation   Location? @relation("MovementToLocation", fields: [toLocationId], references: [id])
+  user         User      @relation(fields: [createdById], references: [id])
+
+  @@index([type])
+  @@index([companyId, refType, refId])
+  @@index([productId])
+  @@index([createdById])
+  @@index([createdAt])
+  @@map("stock_movements")
+}
+
+model GoodsReceipt {
+  id          String   @id @default(uuid()) @db.Uuid
+  companyId   String   @map("company_id") @db.Uuid
+  code        String
+  date        DateTime
+  supplierId  String?  @map("supplier_id") @db.Uuid
+  deliveredBy String?  @map("delivered_by")
+  vehicleNo   String?  @map("vehicle_no")
+  receivedById String? @map("received_by_id") @db.Uuid
+  documentNo  String?  @map("document_no")
+  status      String   // nhap, cho_duyet, da_duyet, da_nhap_kho, huy
+  note        String?
+  createdById String   @map("created_by_id") @db.Uuid
+  approvedById String? @map("approved_by_id") @db.Uuid
+  createdAt   DateTime @default(now()) @map("created_at")
+  updatedAt   DateTime @updatedAt @map("updated_at")
+
+  supplier     Supplier?         @relation(fields: [supplierId], references: [id])
+  receivedUser User?             @relation("ReceiptReceivedBy", fields: [receivedById], references: [id])
+  createdUser  User              @relation("ReceiptCreatedBy", fields: [createdById], references: [id])
+  approvedUser User?             @relation("ReceiptApprovedBy", fields: [approvedById], references: [id])
+  lines        GoodsReceiptLine[]
+
+  @@unique([companyId, code])
+  @@index([status])
+  @@index([supplierId])
+  @@index([date])
+  @@index([createdById])
+  @@map("goods_receipts")
+}
+
+model GoodsReceiptLine {
+  id         String   @id @default(uuid()) @db.Uuid
+  receiptId  String   @map("receipt_id") @db.Uuid
+  productId  String   @map("product_id") @db.Uuid
+  locationId String   @map("location_id") @db.Uuid
+  quantity   Int
+  condition  String // tot, cho_kiem, xuoc, me, vo, khac
+  note       String?
+
+  receipt  GoodsReceipt @relation(fields: [receiptId], references: [id], onDelete: Cascade)
+  product  Product      @relation(fields: [productId], references: [id])
+  location Location     @relation(fields: [locationId], references: [id])
+
+  @@index([receiptId])
+  @@index([productId])
+  @@map("goods_receipt_lines")
+}
+
+model GoodsIssue {
+  id           String   @id @default(uuid()) @db.Uuid
+  companyId    String   @map("company_id") @db.Uuid
+  code         String
+  date         DateTime
+  issueType    String   @map("issue_type") // xuat_ban, xuat_noi_bo, xuat_gia_cong, xuat_huy
+  customerId   String?  @map("customer_id") @db.Uuid
+  projectName  String?  @map("project_name")
+  requestedBy  String?  @map("requested_by")
+  receiverName String?  @map("receiver_name")
+  orderRef     String?  @map("order_ref")
+  vehicleNo    String?  @map("vehicle_no")
+  status       String   // nhap, cho_duyet, da_duyet, da_xuat_kho, huy
+  note         String?
+  createdById  String   @map("created_by_id") @db.Uuid
+  approvedById String?  @map("approved_by_id") @db.Uuid
+  createdAt    DateTime @default(now()) @map("created_at")
+  updatedAt    DateTime @updatedAt @map("updated_at")
+
+  customer     Customer?        @relation(fields: [customerId], references: [id])
+  createdUser  User             @relation("IssueCreatedBy", fields: [createdById], references: [id])
+  approvedUser User?            @relation("IssueApprovedBy", fields: [approvedById], references: [id])
+  lines        GoodsIssueLine[]
+
+  @@unique([companyId, code])
+  @@index([status])
+  @@index([issueType])
+  @@index([customerId])
+  @@index([date])
+  @@index([createdById])
+  @@map("goods_issues")
+}
+
+model GoodsIssueLine {
+  id           String   @id @default(uuid()) @db.Uuid
+  issueId      String   @map("issue_id") @db.Uuid
+  productId    String   @map("product_id") @db.Uuid
+  locationId   String   @map("location_id") @db.Uuid
+  requestedQty Int      @map("requested_qty")
+  actualQty    Int      @default(0) @map("actual_qty")
+  condition    String?
+  note         String?
+
+  issue    GoodsIssue @relation(fields: [issueId], references: [id], onDelete: Cascade)
+  product  Product    @relation(fields: [productId], references: [id])
+  location Location   @relation(fields: [locationId], references: [id])
+
+  @@index([issueId])
+  @@index([productId])
+  @@map("goods_issue_lines")
+}
+
+model ProcessingOrder {
+  id          String    @id @default(uuid()) @db.Uuid
+  companyId   String    @map("company_id") @db.Uuid
+  code        String
+  date        DateTime
+  customerId  String?   @map("customer_id") @db.Uuid
+  projectName String?   @map("project_name")
+  requestedBy String?   @map("requested_by")
+  assignedTo  String?   @map("assigned_to")
+  dueDate     DateTime? @map("due_date")
+  processType String    @map("process_type") // cat, mai, khoan, cuong_luc, dan, hop, khac
+  status      String    // nhap, cho_duyet, cho_vat_tu, dang_gia_cong, hoan_thanh, co_loi, huy
+  note        String?
+  createdById String    @map("created_by_id") @db.Uuid
+  approvedById String?  @map("approved_by_id") @db.Uuid
+  createdAt   DateTime  @default(now()) @map("created_at")
+  updatedAt   DateTime  @updatedAt @map("updated_at")
+
+  customer     Customer?          @relation(fields: [customerId], references: [id])
+  createdUser  User               @relation("ProcessingCreatedBy", fields: [createdById], references: [id])
+  approvedUser User?              @relation("ProcessingApprovedBy", fields: [approvedById], references: [id])
+  inputs       ProcessingInput[]
+  outputs      ProcessingOutput[]
+  wastes       ProcessingWaste[]
+
+  @@unique([companyId, code])
+  @@index([status])
+  @@index([processType])
+  @@index([customerId])
+  @@index([date])
+  @@index([createdById])
+  @@map("processing_orders")
+}
+
+model ProcessingInput {
+  id                String   @id @default(uuid()) @db.Uuid
+  processingOrderId String   @map("processing_order_id") @db.Uuid
+  productId         String   @map("product_id") @db.Uuid
+  locationId        String   @map("location_id") @db.Uuid
+  quantity          Int
+  areaM2            Float?   @map("area_m2")
+  note              String?
+
+  processingOrder ProcessingOrder @relation(fields: [processingOrderId], references: [id], onDelete: Cascade)
+  product         Product         @relation(fields: [productId], references: [id])
+  location        Location        @relation(fields: [locationId], references: [id])
+
+  @@index([processingOrderId])
+  @@index([productId])
+  @@map("processing_inputs")
+}
+
+model ProcessingOutput {
+  id                String    @id @default(uuid()) @db.Uuid
+  processingOrderId String    @map("processing_order_id") @db.Uuid
+  productCode       String?   @map("product_code")
+  productName       String    @map("product_name")
+  lengthMm          Float?    @map("length_mm")
+  widthMm           Float?    @map("width_mm")
+  thickness         Float?
+  quantity          Int
+  areaM2            Float?    @map("area_m2")
+  locationId        String?   @map("location_id") @db.Uuid
+  customerId        String?   @map("customer_id") @db.Uuid
+  projectName       String?   @map("project_name")
+  note              String?
+
+  processingOrder ProcessingOrder @relation(fields: [processingOrderId], references: [id], onDelete: Cascade)
+  location        Location?       @relation(fields: [locationId], references: [id])
+  customer        Customer?       @relation(fields: [customerId], references: [id])
+
+  @@index([processingOrderId])
+  @@map("processing_outputs")
+}
+
+model ProcessingWaste {
+  id                String   @id @default(uuid()) @db.Uuid
+  processingOrderId String   @map("processing_order_id") @db.Uuid
+  wasteType         String   @map("waste_type") // cat_quy_cach, vo_gia_cong, xuoc_me, sai_quy_cach, loi_vat_tu, loi_thao_tac, khac
+  productId         String?  @map("product_id") @db.Uuid
+  quantity          Int?
+  areaM2            Float?   @map("area_m2")
+  reason            String?
+  reusable          Boolean  @default(false)
+  note              String?
+
+  processingOrder ProcessingOrder @relation(fields: [processingOrderId], references: [id], onDelete: Cascade)
+  product         Product?        @relation(fields: [productId], references: [id])
+
+  @@index([processingOrderId])
+  @@map("processing_wastes")
+}
+
+model DamageReport {
+  id           String    @id @default(uuid()) @db.Uuid
+  companyId    String    @map("company_id") @db.Uuid
+  code         String
+  date         DateTime
+  reportedById String    @map("reported_by_id") @db.Uuid
+  productId    String    @map("product_id") @db.Uuid
+  locationId   String    @map("location_id") @db.Uuid
+  quantity     Int
+  damageType   String    @map("damage_type") // vo, xuoc, me, sai_quy_cach, loi_gia_cong, loi_van_chuyen, loi_nha_cung_cap, khac
+  reason       String?
+  imagePath    String?   @map("image_path")
+  handlingPlan String    @map("handling_plan") // cho_xu_ly, ban_thanh_ly, tra_ncc, huy, dung_lai, chuyen_gia_cong
+  status       String    // cho_xu_ly, da_xu_ly, huy
+  approvedById String?   @map("approved_by_id") @db.Uuid
+  note         String?
+  createdAt    DateTime  @default(now()) @map("created_at")
+  updatedAt    DateTime  @updatedAt @map("updated_at")
+
+  reporter     User      @relation("DamageReportedBy", fields: [reportedById], references: [id])
+  approver     User?     @relation("DamageApprovedBy", fields: [approvedById], references: [id])
+  product      Product   @relation(fields: [productId], references: [id])
+  location     Location  @relation(fields: [locationId], references: [id])
+
+  @@unique([companyId, code])
+  @@index([status])
+  @@index([damageType])
+  @@index([productId])
+  @@index([reportedById])
+  @@index([date])
+  @@map("damage_reports")
+}
+
+model Stocktake {
+  id           String    @id @default(uuid()) @db.Uuid
+  companyId    String    @map("company_id") @db.Uuid
+  code         String
+  date         DateTime
+  zone         String?
+  status       String    // dang_kiem, cho_doi_chieu, hoan_thanh, huy
+  note         String?
+  createdById  String    @map("created_by_id") @db.Uuid
+  approvedById String?   @map("approved_by_id") @db.Uuid
+  createdAt    DateTime  @default(now()) @map("created_at")
+  updatedAt    DateTime  @updatedAt @map("updated_at")
+
+  createdUser  User            @relation("StocktakeCreatedBy", fields: [createdById], references: [id])
+  approvedUser User?           @relation("StocktakeApprovedBy", fields: [approvedById], references: [id])
+  lines        StocktakeLine[]
+
+  @@unique([companyId, code])
+  @@index([status])
+  @@index([date])
+  @@index([createdById])
+  @@map("stocktakes")
+}
+
+model StocktakeLine {
+  id          String   @id @default(uuid()) @db.Uuid
+  stocktakeId String   @map("stocktake_id") @db.Uuid
+  productId   String   @map("product_id") @db.Uuid
+  locationId  String   @map("location_id") @db.Uuid
+  systemQty   Int      @map("system_qty")
+  actualQty   Int      @map("actual_qty")
+  difference  Int
+  reason      String?
+  proposal    String?
+  note        String?
+
+  stocktake Stocktake @relation(fields: [stocktakeId], references: [id], onDelete: Cascade)
+  product   Product   @relation(fields: [productId], references: [id])
+  location  Location  @relation(fields: [locationId], references: [id])
+
+  @@index([stocktakeId])
+  @@index([productId])
+  @@map("stocktake_lines")
+}
+
+model StockAdjustment {
+  id           String    @id @default(uuid()) @db.Uuid
+  companyId    String    @map("company_id") @db.Uuid
+  code         String
+  date         DateTime
+  reason       String    // sai_nhap_lieu, kiem_ke, hang_vo_huy, chuyen_vi_tri, khac
+  status       String    // nhap, cho_duyet, da_duyet, huy
+  note         String?
+  createdById  String    @map("created_by_id") @db.Uuid
+  approvedById String?   @map("approved_by_id") @db.Uuid
+  createdAt    DateTime  @default(now()) @map("created_at")
+  updatedAt    DateTime  @updatedAt @map("updated_at")
+
+  createdUser  User                  @relation("AdjustmentCreatedBy", fields: [createdById], references: [id])
+  approvedUser User?                 @relation("AdjustmentApprovedBy", fields: [approvedById], references: [id])
+  lines        StockAdjustmentLine[]
+
+  @@unique([companyId, code])
+  @@index([status])
+  @@index([reason])
+  @@index([date])
+  @@index([createdById])
+  @@map("stock_adjustments")
+}
+
+model StockAdjustmentLine {
+  id           String   @id @default(uuid()) @db.Uuid
+  adjustmentId String   @map("adjustment_id") @db.Uuid
+  productId    String   @map("product_id") @db.Uuid
+  locationId   String   @map("location_id") @db.Uuid
+  qtyBefore    Int      @map("qty_before")
+  qtyAfter     Int      @map("qty_after")
+  difference   Int
+  note         String?
+
+  adjustment StockAdjustment @relation(fields: [adjustmentId], references: [id], onDelete: Cascade)
+  product    Product         @relation(fields: [productId], references: [id])
+  location   Location        @relation(fields: [locationId], references: [id])
+
+  @@index([adjustmentId])
+  @@index([productId])
+  @@map("stock_adjustment_lines")
+}
+
+model Attachment {
+  id           String   @id @default(uuid()) @db.Uuid
+  companyId    String   @map("company_id") @db.Uuid
+  entityType   String   @map("entity_type")
+  entityId     String   @map("entity_id") @db.Uuid
+  fileName     String   @map("file_name")
+  filePath     String   @map("file_path")
+  mimeType     String?  @map("mime_type")
+  uploadedById String   @map("uploaded_by_id") @db.Uuid
+  createdAt    DateTime @default(now()) @map("created_at")
+
+  uploader User @relation(fields: [uploadedById], references: [id])
+
+  @@index([companyId, entityType, entityId])
+  @@index([uploadedById])
+  @@map("attachments")
+}
+
+// =============================================================================
+// SALE MANAGER MODELS
+// =============================================================================
+
+model Team {
+  id          String   @id @default(uuid()) @db.Uuid
+  companyId   String   @map("company_id") @db.Uuid
+  name        String
+  description String?
+  createdAt   DateTime @default(now()) @map("created_at")
+  updatedAt   DateTime @updatedAt @map("updated_at")
+
+  users User[]
+
+  @@index([companyId])
+  @@map("teams")
+}
+
+model CustomerInteraction {
+  id               String    @id @default(uuid()) @db.Uuid
+  companyId        String    @map("company_id") @db.Uuid
+  customerId       String    @map("customer_id") @db.Uuid
+  userId           String    @map("user_id") @db.Uuid
+  type             String
+  content          String
+  result           String?
+  nextFollowUpDate DateTime? @map("next_follow_up_date")
+  createdAt        DateTime  @default(now()) @map("created_at")
+
+  customer Customer @relation(fields: [customerId], references: [id], onDelete: Cascade)
+  user     User     @relation(fields: [userId], references: [id])
+
+  @@index([customerId])
+  @@index([userId])
+  @@map("customer_interactions")
+}
+
+model Opportunity {
+  id                String    @id @default(uuid()) @db.Uuid
+  companyId         String    @map("company_id") @db.Uuid
+  code              String
+  name              String
+  customerId        String    @map("customer_id") @db.Uuid
+  projectName       String?   @map("project_name")
+  assignedToId      String    @map("assigned_to_id") @db.Uuid
+  products          String?
+  estimatedArea     Float?    @map("estimated_area")
+  estimatedValue    Float     @default(0) @map("estimated_value")
+  probability       Int       @default(50)
+  stage             String    @default("NEW_LEAD")
+  expectedCloseDate DateTime? @map("expected_close_date")
+  lossReason        String?   @map("loss_reason")
+  competitor        String?
+  notes             String?
+  createdAt         DateTime  @default(now()) @map("created_at")
+  updatedAt         DateTime  @updatedAt @map("updated_at")
+  deletedAt         DateTime? @map("deleted_at")
+
+  customer    Customer      @relation(fields: [customerId], references: [id], onDelete: Cascade)
+  assignedTo  User          @relation(fields: [assignedToId], references: [id])
+  quotes      Quote[]
+  salesOrders SalesOrder[]
+  salesTasks  SalesTask[]
+
+  @@unique([companyId, code])
+  @@index([stage])
+  @@index([assignedToId])
+  @@index([customerId])
+  @@map("opportunities")
+}
+
+model Quote {
+  id               String    @id @default(uuid()) @db.Uuid
+  companyId        String    @map("company_id") @db.Uuid
+  code             String
+  customerId       String    @map("customer_id") @db.Uuid
+  opportunityId    String?   @map("opportunity_id") @db.Uuid
+  createdById      String    @map("created_by_id") @db.Uuid
+  status           String    @default("DRAFT")
+  expiryDate       DateTime? @map("expiry_date")
+  shippingCost     Float     @default(0) @map("shipping_cost")
+  installationCost Float     @default(0) @map("installation_cost")
+  vatRate          Float     @default(10) @map("vat_rate")
+  subtotal         Float     @default(0)
+  vatAmount        Float     @default(0) @map("vat_amount")
+  total            Float     @default(0)
+  terms            String?
+  notes            String?
+  createdAt        DateTime  @default(now()) @map("created_at")
+  updatedAt        DateTime  @updatedAt @map("updated_at")
+  deletedAt        DateTime? @map("deleted_at")
+
+  customer    Customer     @relation(fields: [customerId], references: [id], onDelete: Cascade)
+  opportunity Opportunity? @relation(fields: [opportunityId], references: [id], onDelete: SetNull)
+  createdBy   User         @relation(fields: [createdById], references: [id])
+  items       QuoteItem[]
+  salesOrders SalesOrder[]
+
+  @@unique([companyId, code])
+  @@index([status])
+  @@index([createdById])
+  @@index([customerId])
+  @@map("quotes")
+}
+
+model QuoteItem {
+  id            String  @id @default(uuid()) @db.Uuid
+  quoteId       String  @map("quote_id") @db.Uuid
+  productId     String? @map("product_id") @db.Uuid
+  description   String
+  specification String?
+  thickness     String?
+  length        Float?
+  width         Float?
+  area          Float?
+  quantity      Int     @default(1)
+  unitPrice     Float   @default(0) @map("unit_price")
+  discount      Float   @default(0)
+  total         Float   @default(0)
+  sortOrder     Int     @default(0) @map("sort_order")
+
+  quote   Quote    @relation(fields: [quoteId], references: [id], onDelete: Cascade)
+  product Product? @relation(fields: [productId], references: [id], onDelete: SetNull)
+
+  @@index([quoteId])
+  @@map("quote_items")
+}
+
+model SalesOrder {
+  id                   String    @id @default(uuid()) @db.Uuid
+  companyId            String    @map("company_id") @db.Uuid
+  code                 String
+  customerId           String    @map("customer_id") @db.Uuid
+  opportunityId        String?   @map("opportunity_id") @db.Uuid
+  quoteId              String?   @map("quote_id") @db.Uuid
+  assignedToId         String    @map("assigned_to_id") @db.Uuid
+  projectName          String?   @map("project_name")
+  status               String    @default("NEW")
+  paymentStatus        String    @default("UNPAID") @map("payment_status")
+  subtotal             Float     @default(0)
+  discount             Float     @default(0)
+  vatRate              Float     @default(10) @map("vat_rate")
+  vatAmount            Float     @default(0) @map("vat_amount")
+  total                Float     @default(0)
+  paidAmount           Float     @default(0) @map("paid_amount")
+  remainingAmount      Float     @default(0) @map("remaining_amount")
+  signedDate           DateTime? @map("signed_date")
+  expectedDeliveryDate DateTime? @map("expected_delivery_date")
+  notes                String?
+  createdAt            DateTime  @default(now()) @map("created_at")
+  updatedAt            DateTime  @updatedAt @map("updated_at")
+  deletedAt            DateTime? @map("deleted_at")
+
+  customer    Customer           @relation(fields: [customerId], references: [id], onDelete: Cascade)
+  opportunity Opportunity?       @relation(fields: [opportunityId], references: [id], onDelete: SetNull)
+  quote       Quote?             @relation(fields: [quoteId], references: [id], onDelete: SetNull)
+  assignedTo  User               @relation(fields: [assignedToId], references: [id])
+  items       SalesOrderItem[]
+  payments    SalesOrderPayment[]
+
+  @@unique([companyId, code])
+  @@index([status])
+  @@index([paymentStatus])
+  @@index([assignedToId])
+  @@index([customerId])
+  @@map("sales_orders")
+}
+
+model SalesOrderItem {
+  id            String  @id @default(uuid()) @db.Uuid
+  orderId       String  @map("order_id") @db.Uuid
+  productId     String? @map("product_id") @db.Uuid
+  description   String
+  specification String?
+  thickness     String?
+  length        Float?
+  width         Float?
+  area          Float?
+  quantity      Int     @default(1)
+  unitPrice     Float   @default(0) @map("unit_price")
+  discount      Float   @default(0)
+  total         Float   @default(0)
+  sortOrder     Int     @default(0) @map("sort_order")
+
+  order   SalesOrder @relation(fields: [orderId], references: [id], onDelete: Cascade)
+  product Product?   @relation(fields: [productId], references: [id], onDelete: SetNull)
+
+  @@index([orderId])
+  @@map("sales_order_items")
+}
+
+model SalesOrderPayment {
+  id          String   @id @default(uuid()) @db.Uuid
+  orderId     String   @map("order_id") @db.Uuid
+  amount      Float
+  paymentDate DateTime @map("payment_date")
+  method      String?
+  reference   String?
+  notes       String?
+  createdById String   @map("created_by_id") @db.Uuid
+  createdAt   DateTime @default(now()) @map("created_at")
+
+  order     SalesOrder @relation(fields: [orderId], references: [id], onDelete: Cascade)
+  createdBy User       @relation(fields: [createdById], references: [id])
+
+  @@index([orderId])
+  @@map("sales_order_payments")
+}
+
+model SalesTask {
+  id            String    @id @default(uuid()) @db.Uuid
+  companyId     String    @map("company_id") @db.Uuid
+  title         String
+  customerId    String?   @map("customer_id") @db.Uuid
+  opportunityId String?   @map("opportunity_id") @db.Uuid
+  assignedToId  String    @map("assigned_to_id") @db.Uuid
+  createdById   String    @map("created_by_id") @db.Uuid
+  type          String
+  dueDate       DateTime  @map("due_date")
+  priority      String    @default("MEDIUM")
+  status        String    @default("TODO")
+  notes         String?
+  completedAt   DateTime? @map("completed_at")
+  createdAt     DateTime  @default(now()) @map("created_at")
+  updatedAt     DateTime  @updatedAt @map("updated_at")
+
+  customer    Customer?    @relation(fields: [customerId], references: [id], onDelete: SetNull)
+  opportunity Opportunity? @relation(fields: [opportunityId], references: [id], onDelete: SetNull)
+  assignedTo  User         @relation("SalesTaskAssignedTo", fields: [assignedToId], references: [id])
+  createdBy   User         @relation("SalesTaskCreatedBy", fields: [createdById], references: [id])
+
+  @@index([status])
+  @@index([assignedToId])
+  @@index([dueDate])
+  @@map("sales_tasks")
+}
+
+model KPI {
+  id                 String   @id @default(uuid()) @db.Uuid
+  companyId          String   @map("company_id") @db.Uuid
+  userId             String   @map("user_id") @db.Uuid
+  month              Int
+  year               Int
+  targetRevenue      Float    @default(0) @map("target_revenue")
+  targetNewCustomers Int      @default(0) @map("target_new_customers")
+  targetInteractions Int      @default(0) @map("target_interactions")
+  actualRevenue      Float    @default(0) @map("actual_revenue")
+  actualNewCustomers Int      @default(0) @map("actual_new_customers")
+  actualInteractions Int      @default(0) @map("actual_interactions")
+  createdAt          DateTime @default(now()) @map("created_at")
+  updatedAt          DateTime @updatedAt @map("updated_at")
+
+  user User @relation(fields: [userId], references: [id])
+
+  @@unique([companyId, userId, month, year])
+  @@map("kpis")
+}
+
+model BusinessTrip {
+  id                         String   @id @default(uuid()) @db.Uuid
+  companyId                  String   @map("company_id") @db.Uuid
+  code                       String
+  userId                     String   @map("user_id") @db.Uuid
+  title                      String
+  destination                String
+  purpose                    String?
+  startDate                  DateTime @map("start_date")
+  endDate                    DateTime @map("end_date")
+  estimatedCost              Float    @default(0) @map("estimated_cost")
+  estimatedTransportCost     Float    @default(0) @map("estimated_transport_cost")
+  estimatedFoodCost          Float    @default(0) @map("estimated_food_cost")
+  estimatedAccommodationCost Float    @default(0) @map("estimated_accommodation_cost")
+  estimatedEntertainmentCost Float    @default(0) @map("estimated_entertainment_cost")
+  entertainmentNotes         String?  @map("entertainment_notes")
+  actualCost                 Float    @default(0) @map("actual_cost")
+  actualTransportCost        Float    @default(0) @map("actual_transport_cost")
+  actualFoodCost             Float    @default(0) @map("actual_food_cost")
+  actualAccommodationCost    Float    @default(0) @map("actual_accommodation_cost")
+  actualEntertainmentCost    Float    @default(0) @map("actual_entertainment_cost")
+  status                     String   @default("PROPOSED")
+  notes                      String?
+  summary                    String?
+  totalNewClients            Int      @default(0) @map("total_new_clients")
+  totalOldClients            Int      @default(0) @map("total_old_clients")
+  createdAt                  DateTime @default(now()) @map("created_at")
+  updatedAt                  DateTime @updatedAt @map("updated_at")
+
+  user    User              @relation(fields: [userId], references: [id])
+  reports TripDailyReport[]
+
+  @@unique([companyId, code])
+  @@index([userId])
+  @@index([status])
+  @@map("business_trips")
+}
+
+model TripDailyReport {
+  id         String   @id @default(uuid()) @db.Uuid
+  tripId     String   @map("trip_id") @db.Uuid
+  date       DateTime
+  location   String?
+  content    String
+  results    String?
+  newClients Int      @default(0) @map("new_clients")
+  oldClients Int      @default(0) @map("old_clients")
+  images     String?
+  createdAt  DateTime @default(now()) @map("created_at")
+  updatedAt  DateTime @updatedAt @map("updated_at")
+
+  trip BusinessTrip @relation(fields: [tripId], references: [id], onDelete: Cascade)
+
+  @@index([tripId])
+  @@map("trip_daily_reports")
+}
+
