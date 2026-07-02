@@ -97,4 +97,14 @@ export class CreateProductDto {
   @IsOptional()
   @IsString()
   supplierId?: string;
+
+  @ApiPropertyOptional({ example: 'Ghi chú sản phẩm' })
+  @IsOptional()
+  @IsString()
+  note?: string;
+
+  @ApiPropertyOptional({ example: 'TEMPERED_GLASS' })
+  @IsOptional()
+  @IsString()
+  group?: string;
 }

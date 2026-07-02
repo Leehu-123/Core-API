@@ -1,4 +1,4 @@
-import { Body, Controller, Delete, Get, Param, ParseUUIDPipe, Patch, Post, Query, UseGuards } from '@nestjs/common';
+import { Body, Controller, Delete, Get, Param, ParseUUIDPipe, Put, Post, Query, UseGuards } from '@nestjs/common';
 import { ApiBearerAuth, ApiOperation, ApiResponse, ApiTags } from '@nestjs/swagger';
 import { CurrentUser, JwtPayload, Permissions } from '../../common/decorators';
 import { PermissionsGuard } from '../../common/guards';
@@ -39,7 +39,7 @@ export class ProductsController {
     return this.productsService.create(user.companyId, user.sub, dto);
   }
 
-  @Patch(':id')
+  @Put(':id')
   @Permissions('products.write')
   @UseGuards(PermissionsGuard)
   @ApiOperation({ summary: 'Update a product' })

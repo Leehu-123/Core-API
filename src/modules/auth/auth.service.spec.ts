@@ -47,7 +47,7 @@ describe('AuthService', () => {
       prisma.user.findUnique.mockResolvedValue(null);
 
       await expect(
-        service.login({ email: 'nonexistent@test.com', password: 'password' }),
+        service.login({ identifier: 'nonexistent@test.com', password: 'password' }),
       ).rejects.toThrow(UnauthorizedException);
     });
 
@@ -63,7 +63,7 @@ describe('AuthService', () => {
       });
 
       await expect(
-        service.login({ email: 'test@test.com', password: 'wrong-password' }),
+        service.login({ identifier: 'test@test.com', password: 'wrong-password' }),
       ).rejects.toThrow(UnauthorizedException);
     });
 
@@ -79,7 +79,7 @@ describe('AuthService', () => {
       });
 
       await expect(
-        service.login({ email: 'test@test.com', password: 'password' }),
+        service.login({ identifier: 'test@test.com', password: 'password' }),
       ).rejects.toThrow(UnauthorizedException);
     });
   });

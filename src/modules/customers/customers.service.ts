@@ -66,10 +66,43 @@ export class CustomersService {
     return customer;
   }
 
+  private async generateCustomerCode(companyId: string) {
+    const count = await this.prisma.customer.count({ where: { companyId } });
+    return `CUST-${String(count + 1).padStart(4, '0')}`;
+  }
+
+  private mapCustomerDto(dto: CreateCustomerDto | UpdateCustomerDto, code?: string) {
+    const source: any = dto;
+    const data: any = {
+      code: source.code || code,
+      name: source.name,
+      phone: source.phone,
+      email: source.email,
+      address: source.address,
+      taxCode: source.taxCode,
+      note: source.note ?? source.notes,
+      isActive: source.isActive,
+      customerType: source.type,
+      contactPerson: source.contactPerson,
+      province: source.province,
+      projectName: source.projectName,
+      source: source.source,
+      crmStatus: source.status,
+      productNeeds: Array.isArray(source.productNeeds) ? JSON.stringify(source.productNeeds) : source.productNeeds,
+      estimatedArea: source.estimatedArea,
+      estimatedBudget: source.estimatedBudget,
+      nextFollowUpDate: source.nextFollowUpDate ? new Date(source.nextFollowUpDate) : undefined,
+      assignedToId: source.assignedToId || null,
+    };
+
+    Object.keys(data).forEach((key) => data[key] === undefined && delete data[key]);
+    return data;
+  }
+
   async create(companyId: string, userId: string, dto: CreateCustomerDto) {
     const customer = await this.prisma.customer.create({
       data: {
-        ...dto,
+        ...this.mapCustomerDto(dto, await this.generateCustomerCode(companyId)),
         companyId,
         createdById: userId,
         updatedById: userId,
@@ -94,7 +127,7 @@ export class CustomersService {
     const updated = await this.prisma.customer.update({
       where: { id },
       data: {
-        ...dto,
+        ...this.mapCustomerDto(dto),
         updatedById: userId,
       },
     });

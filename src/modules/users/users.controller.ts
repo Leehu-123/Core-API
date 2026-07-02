@@ -5,7 +5,7 @@ import {
   Get,
   Param,
   ParseUUIDPipe,
-  Patch,
+  Put,
   Post,
   Query,
   UseGuards,
@@ -53,7 +53,7 @@ export class UsersController {
     return this.usersService.create(user.companyId, user.sub, dto);
   }
 
-  @Patch(':id')
+  @Put(':id')
   @Permissions('users.write')
   @UseGuards(PermissionsGuard)
   @ApiOperation({ summary: 'Update a user' })
