@@ -1,4 +1,4 @@
-import { Body, Controller, Get, Param, ParseUUIDPipe, Post, Query, UseGuards } from '@nestjs/common';
+﻿import { Body, Controller, Get, Param, ParseUUIDPipe, Post, Query, UseGuards } from '@nestjs/common';
 import { ApiBearerAuth, ApiOperation, ApiResponse, ApiTags } from '@nestjs/swagger';
 import { CurrentUser, JwtPayload, Permissions } from '../../common/decorators';
 import { PermissionsGuard } from '../../common/guards';
@@ -45,6 +45,16 @@ export class InventoryController {
   @ApiResponse({ status: 200, description: 'Inventory and stock movements' })
   getHistory(@Param('productId', ParseUUIDPipe) productId: string, @CurrentUser() user: JwtPayload) {
     return this.inventoryService.getHistory(productId, user.companyId);
+  }
+
+
+  @Get('reports/xnt')
+  @Permissions('inventory.read')
+  @UseGuards(PermissionsGuard)
+  @ApiOperation({ summary: 'Get XNT report' })
+  @ApiResponse({ status: 200, description: 'XNT Report data' })
+  getXntReport(@Query('startDate') startDate: string, @Query('endDate') endDate: string, @CurrentUser() user: JwtPayload) {
+    return this.inventoryService.getXntReport(user.companyId, { startDate, endDate });
   }
 
   @Post('transfer')

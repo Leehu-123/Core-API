@@ -110,8 +110,9 @@ export class QuotesService {
     const installationCost = dto.installationCost || 0;
     const vatRate = dto.vatRate || 0;
 
+    const discount = dto.discount || 0;
     const itemsTotal = items.reduce((sum, item) => sum + item.total, 0);
-    const subtotal = itemsTotal + shippingCost + installationCost;
+    const subtotal = itemsTotal + shippingCost + installationCost - discount;
     const vatAmount = (subtotal * vatRate) / 100;
     const total = subtotal + vatAmount;
 
@@ -126,6 +127,7 @@ export class QuotesService {
         expiryDate: dto.expiryDate,
         shippingCost,
         installationCost,
+        discount,
         vatRate,
         subtotal,
         vatAmount,
@@ -194,10 +196,12 @@ export class QuotesService {
         dto.shippingCost ?? (existing.shippingCost as number) ?? 0;
       const installationCost =
         dto.installationCost ?? (existing.installationCost as number) ?? 0;
+      const discount =
+        dto.discount ?? (existing.discount as number) ?? 0;
       const vatRate = dto.vatRate ?? (existing.vatRate as number) ?? 0;
 
       const itemsTotal = items.reduce((sum, item) => sum + item.total, 0);
-      subtotal = itemsTotal + shippingCost + installationCost;
+      subtotal = itemsTotal + shippingCost + installationCost - discount;
       vatAmount = (subtotal * vatRate) / 100;
       total = subtotal + vatAmount;
 
@@ -220,13 +224,15 @@ export class QuotesService {
         dto.shippingCost ?? (existing.shippingCost as number) ?? 0;
       const installationCost =
         dto.installationCost ?? (existing.installationCost as number) ?? 0;
+      const discount =
+        dto.discount ?? (existing.discount as number) ?? 0;
       const vatRate = dto.vatRate ?? (existing.vatRate as number) ?? 0;
 
       const itemsTotal = currentItems.reduce(
         (sum, item) => sum + (item.total as number),
         0,
       );
-      subtotal = itemsTotal + shippingCost + installationCost;
+      subtotal = itemsTotal + shippingCost + installationCost - discount;
       vatAmount = (subtotal * vatRate) / 100;
       total = subtotal + vatAmount;
     }
@@ -238,6 +244,7 @@ export class QuotesService {
         subtotal,
         vatAmount,
         total,
+        discount: dto.discount !== undefined ? dto.discount : undefined,
         ...itemsUpdate,
       },
       include: {

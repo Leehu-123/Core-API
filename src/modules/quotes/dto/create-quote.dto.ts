@@ -22,6 +22,10 @@ export class QuoteItemDto {
   @IsNotEmpty()
   @IsString()
   description: string;
+  @ApiPropertyOptional()
+  @IsOptional()
+  @IsString()
+  unit?: string;
 
   @ApiPropertyOptional()
   @IsOptional()
@@ -112,6 +116,11 @@ export class CreateQuoteDto {
   @Type(() => Number)
   @IsNumber()
   vatRate?: number;
+  @ApiPropertyOptional()
+  @IsOptional()
+  @Type(() => Number)
+  @IsNumber()
+  discount?: number;
 
   @ApiPropertyOptional()
   @IsOptional()

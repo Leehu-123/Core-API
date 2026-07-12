@@ -29,6 +29,11 @@ export class UsersService {
     const [users, total] = await Promise.all([
       this.prisma.user.findMany({
         where,
+        include: {
+          userRoles: {
+            include: { role: true },
+          },
+        },
         skip: query.skip,
         take: query.limit,
         orderBy: { createdAt: 'desc' },
@@ -37,7 +42,13 @@ export class UsersService {
     ]);
 
     return {
-      data: users.map((user) => this.excludePassword(user)),
+      data: users.map((user) => {
+        const userRoles = (user as any).userRoles?.map((ur: any) => ur.role.name) || [];
+        return {
+          ...this.excludePassword(user),
+          roles: userRoles,
+        };
+      }),
       meta: new PaginationMeta(query.page, query.limit, total),
     };
   }
@@ -65,9 +76,11 @@ export class UsersService {
     const user = await this.prisma.user.create({
       data: {
         email: dto.email,
+        username: dto.username,
         passwordHash,
         fullName: dto.fullName,
         phone: dto.phone,
+        teamId: dto.teamId || null,
         companyId,
         createdById: userId,
         updatedById: userId,
@@ -99,7 +112,8 @@ export class UsersService {
       action: 'CREATED',
       entity: 'User',
       entityId: user.id,
-      newValue: JSON.stringify({ email: dto.email, fullName: dto.fullName }),
+      newValue: JSON.stringify({ email: dto.email,
+        username: dto.username, fullName: dto.fullName }),
     });
 
     return this.excludePassword(user);
@@ -121,6 +135,7 @@ export class UsersService {
     if (dto.email !== undefined) updateData.email = dto.email;
     if (dto.fullName !== undefined) updateData.fullName = dto.fullName;
     if (dto.phone !== undefined) updateData.phone = dto.phone;
+    if (dto.teamId !== undefined) updateData.teamId = dto.teamId === "" ? null : dto.teamId;
     if (dto.isActive !== undefined) updateData.isActive = dto.isActive;
 
     if (dto.password) {

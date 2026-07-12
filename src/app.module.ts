@@ -14,7 +14,6 @@ import { CompaniesModule } from './modules/companies/companies.module';
 import { RolesModule } from './modules/roles/roles.module';
 import { PermissionsModule } from './modules/permissions/permissions.module';
 import { AuditLogsModule } from './modules/audit-logs/audit-logs.module';
-import { BackupsModule } from './modules/backups/backups.module';
 // Stock Manager
 import { ProductsModule } from './modules/products/products.module';
 import { CustomersModule } from './modules/customers/customers.module';
@@ -58,7 +57,6 @@ import { BusinessTripsModule } from './modules/business-trips/business-trips.mod
     RolesModule,
     PermissionsModule,
     AuditLogsModule,
-    BackupsModule,
     // Stock Manager
     ProductsModule,
     CustomersModule,

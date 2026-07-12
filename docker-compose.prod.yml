@@ -1,66 +1,17 @@
 version: '3.8'
-
 services:
-  postgres:
-    image: postgres:16-alpine
-    container_name: core-api-postgres-prod
-    restart: unless-stopped
+  core_api:
+    build: .
+    container_name: core_api_app
+    restart: always
     environment:
-      POSTGRES_USER: ${DB_USER:-app_user}
-      POSTGRES_PASSWORD: ${DB_PASSWORD:-app_password}
-      POSTGRES_DB: ${DB_NAME:-company_db}
-    volumes:
-      - postgres_data_prod:/var/lib/postgresql/data
-      - ./docker/postgres/init.sql:/docker-entrypoint-initdb.d/init.sql
-    healthcheck:
-      test: ['CMD-SHELL', 'pg_isready -U $${POSTGRES_USER} -d $${POSTGRES_DB}']
-      interval: 10s
-      timeout: 5s
-      retries: 5
-    networks:
-      - core-network-prod
-    # PostgreSQL NOT exposed to host in production
-
-  core-api:
-    build:
-      context: .
-      dockerfile: Dockerfile
-    container_name: core-api-app-prod
-    restart: unless-stopped
-    depends_on:
-      postgres:
-        condition: service_healthy
+      - DATABASE_URL=postgresql://admin:secretpassword@postgres_db:5432/warehouse_db?schema=public
+      - NODE_ENV=production
+      - JWT_SECRET=dafa-warehouse-secret-key-2024
     ports:
-      - '3003:3003'
-    env_file:
-      - .env
-    volumes:
-      - backup_data:/app/backups
-    command: >-
-      sh -c "npx prisma migrate deploy && node dist/main"
+      - "4000:3003"
     networks:
-      - core-network-prod
-
-  nginx:
-    image: nginx:alpine
-    container_name: core-api-nginx-prod
-    restart: unless-stopped
-    ports:
-      - '80:80'
-      - '443:443'
-    volumes:
-      - ./docker/nginx/nginx.conf:/etc/nginx/nginx.conf:ro
-      # Uncomment for SSL:
-      # - ./docker/nginx/ssl:/etc/nginx/ssl:ro
-    depends_on:
-      - core-api
-    networks:
-      - core-network-prod
-
-volumes:
-  postgres_data_prod:
-  backup_data:
-
+      - app_network
 networks:
-  core-network-prod:
-    driver: bridge
+  app_network:
+    external: true

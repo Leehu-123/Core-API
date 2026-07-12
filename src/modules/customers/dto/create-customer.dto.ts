@@ -1,5 +1,6 @@
 import { ApiProperty, ApiPropertyOptional } from '@nestjs/swagger';
 import { IsArray, IsBoolean, IsDateString, IsEmail, IsNotEmpty, IsNumber, IsOptional, IsString } from 'class-validator';
+import { Transform } from 'class-transformer';
 
 export class CreateCustomerDto {
   @ApiPropertyOptional({ example: 'CUST-001' })
@@ -19,6 +20,7 @@ export class CreateCustomerDto {
 
   @ApiPropertyOptional({ example: 'contact@acme.com' })
   @IsOptional()
+  @Transform(({ value }) => (value === '' ? undefined : value))
   @IsEmail()
   email?: string;
 
@@ -29,6 +31,7 @@ export class CreateCustomerDto {
 
   @ApiPropertyOptional({ example: '1234567890123' })
   @IsOptional()
+  @Transform(({ value }) => (value === '' ? undefined : value))
   @IsString()
   taxCode?: string;
 
@@ -94,11 +97,13 @@ export class CreateCustomerDto {
 
   @ApiPropertyOptional({ example: '2026-06-30T00:00:00.000Z' })
   @IsOptional()
+  @Transform(({ value }) => (value === '' ? undefined : value))
   @IsDateString()
   nextFollowUpDate?: string;
 
   @ApiPropertyOptional({ example: '00000000-0000-0000-0000-000000000000' })
   @IsOptional()
+  @Transform(({ value }) => (value === '' ? undefined : value))
   @IsString()
   assignedToId?: string;
 }

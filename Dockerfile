@@ -1,7 +1,7 @@
 # ============================================
 # Stage 1: Builder
 # ============================================
-FROM node:20-alpine AS builder
+FROM node:20-slim AS builder
 
 WORKDIR /app
 
@@ -24,16 +24,16 @@ RUN npm run build
 # ============================================
 # Stage 2: Production
 # ============================================
-FROM node:20-alpine AS production
+FROM node:20-slim AS production
 
 # Install pg_dump for backup functionality
-RUN apk add --no-cache postgresql16-client
+RUN apt-get update && apt-get install -y postgresql-client && rm -rf /var/lib/apt/lists/*
 
 WORKDIR /app
 
 # Create non-root user
-RUN addgroup -g 1001 -S appgroup && \
-    adduser -S appuser -u 1001 -G appgroup
+RUN groupadd -g 1001 appgroup && \
+    useradd -u 1001 -g appgroup -s /bin/false -m appuser
 
 # Copy package files
 COPY package*.json ./

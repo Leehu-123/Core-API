@@ -5,7 +5,8 @@ import { ExtractJwt, Strategy } from 'passport-jwt';
 import { PrismaService } from '../../../prisma/prisma.service';
 
 interface JwtPayloadInput {
-  sub: string;
+  sub?: string;
+  userId?: string;
   email: string;
   companyId: string;
 }
@@ -24,8 +25,12 @@ export class JwtStrategy extends PassportStrategy(Strategy) {
   }
 
   async validate(payload: JwtPayloadInput) {
+    const userId = payload.sub || payload.userId;
+    if (!userId) {
+      throw new UnauthorizedException('Invalid token payload');
+    }
     const user = await this.prisma.user.findUnique({
-      where: { id: payload.sub },
+      where: { id: userId },
       include: {
         userRoles: {
           include: {

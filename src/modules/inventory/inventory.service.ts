@@ -1,4 +1,4 @@
-import { Injectable, NotFoundException, BadRequestException } from '@nestjs/common';
+﻿import { Injectable, NotFoundException, BadRequestException } from '@nestjs/common';
 import { PrismaService } from '../../prisma/prisma.service';
 import { AuditLogService } from '../../common/services';
 import { PaginationMeta } from '../../common/dto/api-response.dto';
@@ -143,8 +143,8 @@ export class InventoryService {
         where: { companyId, product: { isActive: true }, location: { isActive: true } },
         _sum: { quantity: true },
       }),
-      this.prisma.goodsReceipt.count({ where: { companyId, status: { in: ['nhap', 'cho_duyet', 'da_duyet'] } } }),
-      this.prisma.goodsIssue.count({ where: { companyId, status: { in: ['nhap', 'cho_duyet', 'da_duyet'] } } }),
+      this.prisma.goodsReceipt.count({ where: { companyId, status: { in: ['nhap', 'cho_duyet'] } } }),
+      this.prisma.goodsIssue.count({ where: { companyId, status: { in: ['nhap', 'cho_duyet'] } } }),
       this.prisma.processingOrder.count({ where: { companyId, status: { in: ['nhap', 'cho_duyet', 'cho_vat_tu', 'dang_gia_cong'] } } }),
       this.prisma.inventory.aggregate({
         where: { 
@@ -221,6 +221,74 @@ export class InventoryService {
       }),
     ]);
     return { inventory, movements };
+  }
+
+
+  async getXntReport(companyId: string, query: { startDate: string, endDate: string }) {
+    if (!query.startDate || !query.endDate) {
+      throw new BadRequestException('Thiếu ngày bắt đầu hoặc kết thúc');
+    }
+    const start = new Date(query.startDate);
+    start.setHours(0, 0, 0, 0);
+    const end = new Date(query.endDate);
+    end.setHours(23, 59, 59, 999);
+
+    const items = await this.prisma.product.findMany({
+      where: { companyId, isActive: true },
+    });
+
+    const movements = await this.prisma.stockMovement.findMany({
+      where: {
+        companyId,
+        createdAt: { lte: end },
+      },
+      select: {
+        productId: true,
+        fromLocationId: true,
+        toLocationId: true,
+        quantity: true,
+        createdAt: true,
+      }
+    });
+
+    const reportMap = new Map<string, any>();
+    for (const item of items) {
+      reportMap.set(item.id, {
+        itemId: item.id,
+        item: {
+          ...item,
+          code: item.code || item.sku,
+          glassType: item.glassType || 'khac',
+        },
+        startQty: 0,
+        inQty: 0,
+        outQty: 0,
+        endQty: 0,
+      });
+    }
+
+    for (const mv of movements) {
+      if (!reportMap.has(mv.productId)) continue;
+      
+      const isBeforeStart = mv.createdAt < start;
+      const isIncrease = mv.toLocationId !== null && mv.fromLocationId === null;
+      const isDecrease = mv.fromLocationId !== null && mv.toLocationId === null;
+
+      const row = reportMap.get(mv.productId);
+
+      if (isBeforeStart) {
+        if (isIncrease) row.startQty += mv.quantity;
+        if (isDecrease) row.startQty -= mv.quantity;
+      } else {
+        if (isIncrease) row.inQty += mv.quantity;
+        if (isDecrease) row.outQty += mv.quantity;
+      }
+    }
+
+    return Array.from(reportMap.values()).map(row => {
+      row.endQty = row.startQty + row.inQty - row.outQty;
+      return row;
+    });
   }
 
   async transferStock(companyId: string, userId: string, dto: TransferStockDto) {

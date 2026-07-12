@@ -173,6 +173,8 @@ model Product {
   areaM2       Float    @default(0) @map("area_m2")
   minStock     Int      @default(0) @map("min_stock")
   supplierId   String?  @map("supplier_id") @db.Uuid
+  note         String?
+  group        String?
 
   company   Company @relation(fields: [companyId], references: [id])
   createdBy User?   @relation("ProductCreatedBy", fields: [createdById], references: [id])
@@ -806,6 +808,7 @@ model Quote {
   subtotal         Float     @default(0)
   vatAmount        Float     @default(0) @map("vat_amount")
   total            Float     @default(0)
+  discount         Float     @default(0) @map("discount")
   terms            String?
   notes            String?
   createdAt        DateTime  @default(now()) @map("created_at")
@@ -831,6 +834,7 @@ model QuoteItem {
   productId     String? @map("product_id") @db.Uuid
   description   String
   specification String?
+  unit          String?
   thickness     String?
   length        Float?
   width         Float?
@@ -894,6 +898,7 @@ model SalesOrderItem {
   productId     String? @map("product_id") @db.Uuid
   description   String
   specification String?
+  unit          String?
   thickness     String?
   length        Float?
   width         Float?

@@ -68,10 +68,10 @@ export class CustomerInteractionsService {
   }
 
   async create(companyId: string, userId: string, dto: CreateCustomerInteractionDto) {
+    const { nextFollowUpDate, ...interactionData } = dto;
     const interaction = await this.prisma.customerInteraction.create({
       data: {
-        ...dto,
-        nextFollowUpDate: dto.nextFollowUpDate ? new Date(dto.nextFollowUpDate) : undefined,
+        ...interactionData,
         companyId,
         userId,
       },
