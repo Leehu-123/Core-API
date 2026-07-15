@@ -38,9 +38,32 @@ export class CustomersService {
       ];
     }
 
+    if (query.status) {
+      where.crmStatus = query.status;
+    }
+
+    if (query.source) {
+      where.source = query.source;
+    }
+
+    if (query.type) {
+      where.customerType = query.type;
+    }
+
+    if (query.assignedToId) {
+      where.assignedToId = query.assignedToId;
+    }
+
+    if (query.teamId) {
+      where.assignedTo = {
+        teamId: query.teamId
+      };
+    }
+
     const [data, total] = await Promise.all([
       this.prisma.customer.findMany({
         where,
+        include: { assignedTo: true },
         skip: query.skip,
         take: query.limit,
         orderBy: { createdAt: 'desc' },
@@ -49,7 +72,12 @@ export class CustomersService {
     ]);
 
     return {
-      data,
+      data: data.map(customer => ({
+        ...customer,
+        type: customer.customerType,
+        status: customer.crmStatus,
+        assignedTo: customer.assignedTo ? { id: customer.assignedTo.id, name: customer.assignedTo.fullName } : undefined,
+      })),
       meta: new PaginationMeta(query.page, query.limit, total),
     };
   }
@@ -57,13 +85,42 @@ export class CustomersService {
   async findOne(id: string, companyId: string) {
     const customer = await this.prisma.customer.findFirst({
       where: { id, companyId, deletedAt: null },
+      include: {
+        assignedTo: true,
+        interactions: { include: { user: true }, orderBy: { createdAt: 'desc' } },
+        opportunities: { orderBy: { createdAt: 'desc' } },
+        quotes: { orderBy: { createdAt: 'desc' } },
+        salesOrders: { orderBy: { createdAt: 'desc' } },
+        salesTasks: { orderBy: { dueDate: 'asc' } },
+      }
     });
 
     if (!customer) {
       throw new NotFoundException(`Customer with ID "${id}" not found`);
     }
 
-    return customer;
+    let productNeeds = [];
+    if (customer.productNeeds) {
+      try {
+        productNeeds = typeof customer.productNeeds === 'string' ? JSON.parse(customer.productNeeds) : customer.productNeeds;
+      } catch (e) {
+        productNeeds = [customer.productNeeds];
+      }
+    }
+
+    return {
+      ...customer,
+      type: customer.customerType,
+      status: customer.crmStatus,
+      productNeeds,
+      orders: customer.salesOrders,
+      tasks: customer.salesTasks,
+      interactions: customer.interactions?.map((i: any) => ({
+        ...i,
+        user: i.user ? { name: i.user.fullName } : { name: 'Unknown' }
+      })),
+      assignedTo: customer.assignedTo ? { id: customer.assignedTo.id, name: customer.assignedTo.fullName } : undefined,
+    };
   }
 
   private async generateCustomerCode(companyId: string) {

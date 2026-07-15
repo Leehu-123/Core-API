@@ -21,6 +21,11 @@ export class OpportunitiesService {
     if (query.stage) where.stage = query.stage;
     if (query.assignedToId) where.assignedToId = query.assignedToId;
     if (query.customerId) where.customerId = query.customerId;
+    if (query.teamId) {
+      where.assignedTo = {
+        teamId: query.teamId
+      };
+    }
 
     if (query.search) {
       where.OR = [

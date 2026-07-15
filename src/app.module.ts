@@ -4,6 +4,8 @@ import { APP_GUARD } from '@nestjs/core';
 import { ThrottlerModule, ThrottlerGuard } from '@nestjs/throttler';
 import { ScheduleModule } from '@nestjs/schedule';
 import { configuration, validationSchema } from './config';
+import { ServeStaticModule } from '@nestjs/serve-static';
+import { join } from 'path';
 import { PrismaModule } from './prisma/prisma.module';
 import { JwtAuthGuard } from './common/guards';
 import { AuditLogService } from './common/services';
@@ -28,6 +30,7 @@ import { StocktakesModule } from './modules/stocktakes/stocktakes.module';
 import { DamageReportsModule } from './modules/damage-reports/damage-reports.module';
 import { StockAdjustmentsModule } from './modules/stock-adjustments/stock-adjustments.module';
 // Sale Manager
+import { DashboardModule } from './modules/dashboard/dashboard.module';
 import { TeamsModule } from './modules/teams/teams.module';
 import { OpportunitiesModule } from './modules/opportunities/opportunities.module';
 import { QuotesModule } from './modules/quotes/quotes.module';
@@ -36,7 +39,8 @@ import { SalesTasksModule } from './modules/sales-tasks/sales-tasks.module';
 import { CustomerInteractionsModule } from './modules/customer-interactions/customer-interactions.module';
 import { KpisModule } from './modules/kpis/kpis.module';
 import { BusinessTripsModule } from './modules/business-trips/business-trips.module';
-
+import { NotificationsModule } from './modules/notifications/notifications.module';
+import { UploadModule } from './modules/upload/upload.module';
 @Module({
   imports: [
     ConfigModule.forRoot({
@@ -49,6 +53,10 @@ import { BusinessTripsModule } from './modules/business-trips/business-trips.mod
       limit: 60,
     }]),
     ScheduleModule.forRoot(),
+    ServeStaticModule.forRoot({
+      rootPath: join(__dirname, '..', 'uploads'),
+      serveRoot: '/uploads',
+    }),
     PrismaModule,
     // Auth & System
     AuthModule,
@@ -57,6 +65,7 @@ import { BusinessTripsModule } from './modules/business-trips/business-trips.mod
     RolesModule,
     PermissionsModule,
     AuditLogsModule,
+    NotificationsModule,
     // Stock Manager
     ProductsModule,
     CustomersModule,
@@ -71,6 +80,7 @@ import { BusinessTripsModule } from './modules/business-trips/business-trips.mod
     DamageReportsModule,
     StockAdjustmentsModule,
     // Sale Manager
+    DashboardModule,
     TeamsModule,
     OpportunitiesModule,
     QuotesModule,
@@ -79,6 +89,7 @@ import { BusinessTripsModule } from './modules/business-trips/business-trips.mod
     CustomerInteractionsModule,
     KpisModule,
     BusinessTripsModule,
+    UploadModule,
   ],
   providers: [
     {
@@ -90,4 +101,3 @@ import { BusinessTripsModule } from './modules/business-trips/business-trips.mod
   exports: [AuditLogService],
 })
 export class AppModule {}
-

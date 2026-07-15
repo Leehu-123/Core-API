@@ -46,12 +46,12 @@ export class CreateOpportunityDto {
 
   @ApiPropertyOptional({
     example: 'NEW_LEAD',
-    enum: ['NEW_LEAD', 'CONTACTED', 'QUALIFIED', 'PROPOSAL', 'NEGOTIATION', 'WON', 'LOST'],
+    enum: ['NEW_LEAD', 'CONTACTED', 'SURVEYED', 'CONSULTING', 'QUOTE_SENT', 'NEGOTIATING', 'CONTRACT_PENDING', 'WON', 'LOST'],
     default: 'NEW_LEAD',
   })
   @IsOptional()
   @IsString()
-  @IsIn(['NEW_LEAD', 'CONTACTED', 'QUALIFIED', 'PROPOSAL', 'NEGOTIATION', 'WON', 'LOST'])
+  @IsIn(['NEW_LEAD', 'CONTACTED', 'SURVEYED', 'CONSULTING', 'QUOTE_SENT', 'NEGOTIATING', 'CONTRACT_PENDING', 'WON', 'LOST'])
   stage?: string;
 
   @ApiPropertyOptional({ example: '2026-12-31T00:00:00.000Z' })

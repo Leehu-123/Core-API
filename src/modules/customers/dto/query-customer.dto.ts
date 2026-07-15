@@ -17,4 +17,34 @@ export class QueryCustomerDto extends PaginationDto {
   @IsOptional()
   @IsString()
   email?: string;
+
+  @ApiPropertyOptional({ description: 'Filter by status' })
+  @IsOptional()
+  @IsString()
+  status?: string;
+
+  @ApiPropertyOptional({ description: 'Filter by source' })
+  @IsOptional()
+  @IsString()
+  source?: string;
+
+  @ApiPropertyOptional({ description: 'Filter by type' })
+  @IsOptional()
+  @IsString()
+  type?: string;
+
+  @ApiPropertyOptional({ description: 'Filter by assigned user ID' })
+  @IsOptional()
+  @IsString()
+  assignedToId?: string;
+
+  @ApiPropertyOptional({ description: 'Filter by team ID' })
+  @IsOptional()
+  @IsString()
+  teamId?: string;
+
+  @ApiPropertyOptional({ description: 'Global search string' })
+  @IsOptional()
+  @IsString()
+  search?: string;
 }

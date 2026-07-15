@@ -1,8 +1,8 @@
 import { ApiProperty, ApiPropertyOptional } from '@nestjs/swagger';
-import { IsArray, IsEmail, IsNotEmpty, IsOptional, IsString, MinLength } from 'class-validator';
+import { IsArray, IsBoolean, IsNotEmpty, IsOptional, IsString, MinLength } from 'class-validator';
 
 export class CreateUserDto {
-  @ApiPropertyOptional({ example: "123e4567-e89b-12d3-a456-426614174000" })
+  @ApiPropertyOptional({ example: '123e4567-e89b-12d3-a456-426614174000' })
   @IsOptional()
   @IsString()
   teamId?: string;
@@ -11,7 +11,6 @@ export class CreateUserDto {
   @IsOptional()
   @IsString()
   username?: string;
-
 
   @IsNotEmpty()
   email: string;
@@ -37,4 +36,9 @@ export class CreateUserDto {
   @IsArray()
   @IsString({ each: true })
   roleNames?: string[];
+
+  @ApiPropertyOptional({ example: true })
+  @IsOptional()
+  @IsBoolean()
+  isActive?: boolean;
 }

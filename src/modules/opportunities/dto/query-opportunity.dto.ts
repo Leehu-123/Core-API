@@ -5,11 +5,11 @@ import { PaginationDto } from '../../../common/dto/pagination.dto';
 export class QueryOpportunityDto extends PaginationDto {
   @ApiPropertyOptional({
     description: 'Filter by stage',
-    enum: ['NEW_LEAD', 'CONTACTED', 'QUALIFIED', 'PROPOSAL', 'NEGOTIATION', 'WON', 'LOST'],
+    enum: ['NEW_LEAD', 'CONTACTED', 'SURVEYED', 'CONSULTING', 'QUOTE_SENT', 'NEGOTIATING', 'CONTRACT_PENDING', 'WON', 'LOST'],
   })
   @IsOptional()
   @IsString()
-  @IsIn(['NEW_LEAD', 'CONTACTED', 'QUALIFIED', 'PROPOSAL', 'NEGOTIATION', 'WON', 'LOST'])
+  @IsIn(['NEW_LEAD', 'CONTACTED', 'SURVEYED', 'CONSULTING', 'QUOTE_SENT', 'NEGOTIATING', 'CONTRACT_PENDING', 'WON', 'LOST'])
   stage?: string;
 
   @ApiPropertyOptional({ description: 'Filter by assigned user ID' })
@@ -21,4 +21,9 @@ export class QueryOpportunityDto extends PaginationDto {
   @IsOptional()
   @IsUUID()
   customerId?: string;
+
+  @ApiPropertyOptional({ description: 'Filter by team ID' })
+  @IsOptional()
+  @IsUUID()
+  teamId?: string;
 }

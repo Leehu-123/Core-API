@@ -25,6 +25,11 @@ export class SalesOrdersService {
     if (query.paymentStatus) where.paymentStatus = query.paymentStatus;
     if (query.assignedToId) where.assignedToId = query.assignedToId;
     if (query.customerId) where.customerId = query.customerId;
+    if (query.teamId) {
+      where.assignedTo = {
+        teamId: query.teamId
+      };
+    }
 
     if (query.search) {
       where.OR = [
@@ -96,7 +101,9 @@ export class SalesOrdersService {
       const qty = item.quantity ?? 1;
       const price = item.unitPrice ?? 0;
       const disc = item.discount ?? 0;
-      const itemTotal = qty * price - disc;
+      const area = item.area ?? 0;
+      const baseQty = area > 0 ? area : qty;
+      const itemTotal = Math.round(baseQty * (price - disc));
       return {
         productId: item.productId,
         description: item.description,
@@ -130,7 +137,7 @@ export class SalesOrdersService {
         quoteId: dto.quoteId,
         projectName: dto.projectName,
         status: 'NEW',
-        paymentStatus: 'UNPAID',
+        paymentStatus: total > 0 ? 'UNPAID' : 'PAID',
         subtotal,
         discount: orderDiscount,
         vatRate,
@@ -197,7 +204,9 @@ export class SalesOrdersService {
           const qty = item.quantity ?? 1;
           const price = item.unitPrice ?? 0;
           const disc = item.discount ?? 0;
-          const itemTotal = qty * price - disc;
+          const area = item.area ?? 0;
+          const baseQty = area > 0 ? area : qty;
+          const itemTotal = Math.round(baseQty * (price - disc));
           return {
             orderId: id,
             productId: item.productId,
@@ -232,7 +241,9 @@ export class SalesOrdersService {
         updateData.remainingAmount = total - existing.paidAmount;
 
         // Recalculate payment status
-        if (existing.paidAmount <= 0) {
+        if (total === 0) {
+          updateData.paymentStatus = 'PAID';
+        } else if (existing.paidAmount <= 0) {
           updateData.paymentStatus = 'UNPAID';
         } else if (existing.paidAmount >= total) {
           updateData.paymentStatus = 'PAID';
@@ -383,9 +394,9 @@ export class SalesOrdersService {
     // Valid transitions
     const validTransitions: Record<string, string[]> = {
       NEW: ['CONFIRMED', 'CANCELLED'],
-      CONFIRMED: ['PRODUCING', 'CANCELLED'],
-      PRODUCING: ['DELIVERING', 'CANCELLED'],
-      DELIVERING: ['COMPLETED', 'CANCELLED'],
+      CONFIRMED: ['DELIVERING', 'CANCELLED'],
+      DELIVERING: ['DEBT_TRACKING', 'CANCELLED'],
+      DEBT_TRACKING: ['COMPLETED', 'CANCELLED'],
       COMPLETED: [],
       CANCELLED: [],
     };
@@ -395,6 +406,10 @@ export class SalesOrdersService {
       throw new BadRequestException(
         `Cannot transition from ${existing.status} to ${status}. Allowed: ${allowed.join(', ') || 'none'}`,
       );
+    }
+
+    if (status === 'COMPLETED' && existing.remainingAmount > 0) {
+      throw new BadRequestException('Cannot complete an order that is not fully paid');
     }
 
     const order = await this.prisma.salesOrder.update({

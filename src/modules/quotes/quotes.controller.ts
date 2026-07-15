@@ -35,13 +35,13 @@ export class QuotesController {
   }
 
   @Post()
-  @Permissions('quotes.create')
+  @Permissions('quotes.write')
   create(@CurrentUser() user: JwtPayload, @Body() dto: CreateQuoteDto) {
     return this.quotesService.create(user.companyId, user.sub, dto);
   }
 
   @Put(':id')
-  @Permissions('quotes.update')
+  @Permissions('quotes.write')
   update(
     @CurrentUser() user: JwtPayload,
     @Param('id') id: string,
@@ -51,19 +51,19 @@ export class QuotesController {
   }
 
   @Post(':id/send')
-  @Permissions('quotes.update')
+  @Permissions('quotes.write')
   send(@CurrentUser() user: JwtPayload, @Param('id') id: string) {
     return this.quotesService.send(id, user.companyId, user.sub);
   }
 
   @Delete(':id')
-  @Permissions('quotes.delete')
+  @Permissions('quotes.write')
   softRemove(@CurrentUser() user: JwtPayload, @Param('id') id: string) {
     return this.quotesService.softRemove(id, user.companyId);
   }
 
   @Delete(':id/hard')
-  @Permissions('quotes.delete')
+  @Permissions('quotes.write')
   hardRemove(@CurrentUser() user: JwtPayload, @Param('id') id: string) {
     return this.quotesService.hardRemove(id, user.companyId);
   }

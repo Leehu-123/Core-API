@@ -37,4 +37,9 @@ export class QuerySalesOrderDto extends PaginationDto {
   @IsOptional()
   @IsUUID()
   customerId?: string;
+
+  @ApiPropertyOptional({ description: 'Filter by team ID' })
+  @IsOptional()
+  @IsUUID()
+  teamId?: string;
 }

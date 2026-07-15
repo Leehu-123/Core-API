@@ -9,11 +9,14 @@ import { AuditLogService } from '../../common/services';
 import { PaginationMeta } from '../../common/dto/api-response.dto';
 import { CreateQuoteDto, QueryQuoteDto, UpdateQuoteDto } from './dto';
 
+import { NotificationsService } from '../notifications/notifications.service';
+
 @Injectable()
 export class QuotesService {
   constructor(
     private readonly prisma: PrismaService,
     private readonly auditLog: AuditLogService,
+    private readonly notifications: NotificationsService,
   ) {}
 
   async findAll(companyId: string, query: QueryQuoteDto) {
@@ -77,6 +80,9 @@ export class QuotesService {
           include: { product: true },
           orderBy: { sortOrder: 'asc' },
         },
+        _count: {
+          select: { salesOrders: true },
+        },
       },
     });
 
@@ -94,7 +100,9 @@ export class QuotesService {
       const quantity = item.quantity || 1;
       const unitPrice = item.unitPrice || 0;
       const discount = item.discount || 0;
-      const total = quantity * unitPrice - discount;
+      const area = item.area || 0;
+      const baseQuantity = area > 0 ? area : quantity;
+      const total = Math.round(baseQuantity * (unitPrice - discount));
 
       return {
         ...item,
@@ -154,6 +162,14 @@ export class QuotesService {
       newValue: JSON.stringify(quote),
     });
 
+    if (quote.status === 'PENDING_APPROVAL' || quote.status === 'DRAFT') {
+      this.notifications.sendToUsersByRoles(['ADMIN', 'MANAGER'], {
+        title: 'Báo giá mới',
+        body: `Báo giá ${quote.code} của khách hàng ${quote.customer?.name || 'mới'} vừa được tạo.`,
+        url: `/quotes/${quote.id}`,
+      }).catch(console.error);
+    }
+
     return quote;
   }
 
@@ -180,7 +196,9 @@ export class QuotesService {
         const quantity = item.quantity || 1;
         const unitPrice = item.unitPrice || 0;
         const discount = item.discount || 0;
-        const itemTotal = quantity * unitPrice - discount;
+        const area = item.area || 0;
+        const baseQuantity = area > 0 ? area : quantity;
+        const itemTotal = Math.round(baseQuantity * (unitPrice - discount));
 
         return {
           ...item,

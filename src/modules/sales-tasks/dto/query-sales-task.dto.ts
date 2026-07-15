@@ -5,11 +5,11 @@ import { PaginationDto } from '../../../common/dto/pagination.dto';
 export class QuerySalesTaskDto extends PaginationDto {
   @ApiPropertyOptional({
     description: 'Filter by status',
-    enum: ['TODO', 'IN_PROGRESS', 'DONE', 'CANCELLED'],
+    enum: ['TODO', 'IN_PROGRESS', 'DONE', 'OVERDUE'],
   })
   @IsOptional()
   @IsString()
-  @IsIn(['TODO', 'IN_PROGRESS', 'DONE', 'CANCELLED'])
+  @IsIn(['TODO', 'IN_PROGRESS', 'DONE', 'OVERDUE'])
   status?: string;
 
   @ApiPropertyOptional({ description: 'Filter by assigned user ID' })
@@ -19,11 +19,11 @@ export class QuerySalesTaskDto extends PaginationDto {
 
   @ApiPropertyOptional({
     description: 'Filter by task type',
-    enum: ['CALL', 'MEETING', 'EMAIL', 'VISIT', 'FOLLOW_UP', 'OTHER'],
+    enum: ['CALL', 'ZALO', 'EMAIL', 'MEETING', 'SITE_SURVEY', 'SEND_QUOTE', 'FOLLOW_QUOTE', 'FOLLOW_PAYMENT', 'FOLLOW_UP', 'OTHER'],
   })
   @IsOptional()
   @IsString()
-  @IsIn(['CALL', 'MEETING', 'EMAIL', 'VISIT', 'FOLLOW_UP', 'OTHER'])
+  @IsIn(['CALL', 'ZALO', 'EMAIL', 'MEETING', 'SITE_SURVEY', 'SEND_QUOTE', 'FOLLOW_QUOTE', 'FOLLOW_PAYMENT', 'FOLLOW_UP', 'OTHER'])
   type?: string;
 
   @ApiPropertyOptional({
@@ -39,6 +39,11 @@ export class QuerySalesTaskDto extends PaginationDto {
   @IsOptional()
   @IsUUID()
   customerId?: string;
+
+  @ApiPropertyOptional({ description: 'Filter by team ID' })
+  @IsOptional()
+  @IsUUID()
+  teamId?: string;
 
   @ApiPropertyOptional({ description: 'Filter tasks due on or after this date', example: '2026-07-01T00:00:00.000Z' })
   @IsOptional()

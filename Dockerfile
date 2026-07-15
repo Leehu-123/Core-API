@@ -10,7 +10,7 @@ COPY package*.json ./
 COPY prisma ./prisma/
 
 # Install dependencies
-RUN npm ci
+RUN npm install
 
 # Generate Prisma Client
 RUN npx prisma generate
@@ -39,7 +39,7 @@ RUN groupadd -g 1001 appgroup && \
 COPY package*.json ./
 
 # Install production dependencies only
-RUN npm ci --only=production
+RUN npm install --only=production
 
 # Copy Prisma files and generate client
 COPY prisma ./prisma/
@@ -52,7 +52,7 @@ COPY --from=builder /app/dist ./dist
 COPY scripts ./scripts/
 
 # Create backup directory
-RUN mkdir -p /app/backups && chown appuser:appgroup /app/backups
+RUN mkdir -p /app/backups /app/uploads && chown appuser:appgroup /app/backups /app/uploads
 
 # Switch to non-root user
 USER appuser

@@ -1,10 +1,9 @@
 import { Injectable, NotFoundException } from '@nestjs/common';
 import * as bcrypt from 'bcrypt';
-import { PaginationDto } from '../../common/dto/pagination.dto';
 import { PaginationMeta } from '../../common/dto/api-response.dto';
 import { AuditLogService } from '../../common/services';
 import { PrismaService } from '../../prisma/prisma.service';
-import { CreateUserDto, UpdateUserDto } from './dto';
+import { CreateUserDto, UpdateUserDto, UserFilterDto } from './dto';
 
 @Injectable()
 export class UsersService {
@@ -13,11 +12,25 @@ export class UsersService {
     private readonly auditLogService: AuditLogService,
   ) {}
 
-  async findAll(companyId: string, query: PaginationDto) {
+  async findAll(companyId: string, query: UserFilterDto) {
     const where: any = {
       companyId,
       deletedAt: null,
     };
+
+    if (query.teamId) {
+      where.teamId = query.teamId;
+    }
+
+    if (query.role) {
+      where.userRoles = {
+        some: {
+          role: {
+            name: { equals: query.role, mode: 'insensitive' },
+          },
+        },
+      };
+    }
 
     if (query.search) {
       where.OR = [
@@ -30,6 +43,7 @@ export class UsersService {
       this.prisma.user.findMany({
         where,
         include: {
+          team: true,
           userRoles: {
             include: { role: true },
           },
@@ -133,6 +147,7 @@ export class UsersService {
     };
 
     if (dto.email !== undefined) updateData.email = dto.email;
+    if (dto.username !== undefined) updateData.username = dto.username;
     if (dto.fullName !== undefined) updateData.fullName = dto.fullName;
     if (dto.phone !== undefined) updateData.phone = dto.phone;
     if (dto.teamId !== undefined) updateData.teamId = dto.teamId === "" ? null : dto.teamId;

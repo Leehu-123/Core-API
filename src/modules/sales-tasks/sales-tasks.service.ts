@@ -24,6 +24,12 @@ export class SalesTasksService {
       where.assignedToId = query.assignedToId;
     }
 
+    if (query.teamId) {
+      where.assignedTo = {
+        teamId: query.teamId
+      };
+    }
+
     if (query.type) {
       where.type = query.type;
     }

@@ -15,7 +15,7 @@ import { CurrentUser, JwtPayload, Permissions, Roles } from '../../common/decora
 import { PaginationDto } from '../../common/dto/pagination.dto';
 import { PermissionsGuard, RolesGuard } from '../../common/guards';
 import { UsersService } from './users.service';
-import { CreateUserDto, UpdateUserDto } from './dto';
+import { CreateUserDto, UpdateUserDto, UserFilterDto } from './dto';
 
 @ApiTags('Users')
 @Controller('users')
@@ -30,7 +30,7 @@ export class UsersController {
   @UseGuards(PermissionsGuard)
   @ApiOperation({ summary: 'List all users (paginated)' })
   @ApiResponse({ status: 200, description: 'Paginated list of users' })
-  findAll(@Query() query: PaginationDto, @CurrentUser() user: JwtPayload) {
+  findAll(@Query() query: UserFilterDto, @CurrentUser() user: JwtPayload) {
     return this.usersService.findAll(user.companyId, query);
   }
 

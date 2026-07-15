@@ -86,6 +86,8 @@ model User {
   customerInteractions  CustomerInteraction[]
   orderPaymentsCreated  SalesOrderPayment[]
   businessTrips         BusinessTrip[]
+  pushSubscriptions     PushSubscription[]
+  locations             UserLocation[]
 
   @@map("users")
 }
@@ -106,6 +108,19 @@ model Role {
 
   @@unique([companyId, name])
   @@map("roles")
+}
+
+model PushSubscription {
+  id        String   @id @default(uuid()) @db.Uuid
+  userId    String   @map("user_id") @db.Uuid
+  endpoint  String
+  p256dh    String
+  auth      String
+  createdAt DateTime @default(now()) @map("created_at")
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@map("push_subscriptions")
 }
 
 model Permission {
@@ -1038,5 +1053,21 @@ model TripDailyReport {
 
   @@index([tripId])
   @@map("trip_daily_reports")
+}
+
+model UserLocation {
+  id        String   @id @default(uuid()) @db.Uuid
+  userId    String   @map("user_id") @db.Uuid
+  latitude  Float
+  longitude Float
+  accuracy  Float?
+  timestamp DateTime @default(now())
+  createdAt DateTime @default(now()) @map("created_at")
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([userId])
+  @@index([timestamp])
+  @@map("user_locations")
 }
 

@@ -9,12 +9,21 @@ export class CreateSalesTaskDto {
 
   @ApiProperty({
     example: 'CALL',
-    enum: ['CALL', 'MEETING', 'EMAIL', 'VISIT', 'FOLLOW_UP', 'OTHER'],
+    enum: ['CALL', 'ZALO', 'EMAIL', 'MEETING', 'SITE_SURVEY', 'SEND_QUOTE', 'FOLLOW_QUOTE', 'FOLLOW_PAYMENT', 'FOLLOW_UP', 'OTHER'],
   })
   @IsString()
   @IsNotEmpty()
-  @IsIn(['CALL', 'MEETING', 'EMAIL', 'VISIT', 'FOLLOW_UP', 'OTHER'])
+  @IsIn(['CALL', 'ZALO', 'EMAIL', 'MEETING', 'SITE_SURVEY', 'SEND_QUOTE', 'FOLLOW_QUOTE', 'FOLLOW_PAYMENT', 'FOLLOW_UP', 'OTHER'])
   type: string;
+
+  @ApiPropertyOptional({
+    example: 'TODO',
+    enum: ['TODO', 'IN_PROGRESS', 'DONE', 'OVERDUE'],
+  })
+  @IsOptional()
+  @IsString()
+  @IsIn(['TODO', 'IN_PROGRESS', 'DONE', 'OVERDUE'])
+  status?: string;
 
   @ApiProperty({ example: '550e8400-e29b-41d4-a716-446655440000' })
   @IsUUID()

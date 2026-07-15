@@ -4,12 +4,14 @@ import { PrismaService } from '../../prisma/prisma.service';
 import { AuditLogService } from '../../common/services';
 import { PaginationMeta } from '../../common/dto/api-response.dto';
 import { CreateBusinessTripDto, UpdateBusinessTripDto, QueryBusinessTripDto, AddDailyReportDto } from './dto';
+import { NotificationsService } from '../notifications/notifications.service';
 
 @Injectable()
 export class BusinessTripsService {
   constructor(
     private readonly prisma: PrismaService,
     private readonly auditLogService: AuditLogService,
+    private readonly notifications: NotificationsService,
   ) {}
 
   async findAll(companyId: string, query: QueryBusinessTripDto) {
@@ -23,6 +25,12 @@ export class BusinessTripsService {
 
     if (query.userId) {
       where.userId = query.userId;
+    }
+
+    if (query.teamId) {
+      where.user = {
+        teamId: query.teamId
+      };
     }
 
     if (query.search) {
@@ -41,13 +49,19 @@ export class BusinessTripsService {
         orderBy: { createdAt: 'desc' },
         include: {
           user: true,
+          _count: {
+            select: { reports: true }
+          }
         },
       }),
       this.prisma.businessTrip.count({ where }),
     ]);
 
     return {
-      data,
+      data: data.map(trip => ({
+        ...trip,
+        user: trip.user ? { ...trip.user, name: trip.user.fullName } : null,
+      })),
       meta: new PaginationMeta(query.page, query.limit, total),
     };
   }
@@ -67,7 +81,10 @@ export class BusinessTripsService {
       throw new NotFoundException(`Business trip with ID "${id}" not found`);
     }
 
-    return trip;
+    return {
+      ...trip,
+      user: trip.user ? { ...trip.user, name: trip.user.fullName } : null,
+    };
   }
 
   async create(companyId: string, userId: string, dto: CreateBusinessTripDto) {
@@ -91,6 +108,12 @@ export class BusinessTripsService {
       entityId: trip.id,
       newValue: JSON.stringify(trip),
     });
+
+    this.notifications.sendToUsersByRoles(['ADMIN', 'MANAGER'], {
+      title: 'Đề xuất công tác mới',
+      body: `Đề xuất công tác mới: ${trip.title} đang chờ duyệt.`,
+      url: `/trips/${trip.id}`,
+    }).catch(console.error);
 
     return trip;
   }

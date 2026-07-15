@@ -16,4 +16,9 @@ export class QueryBusinessTripDto extends PaginationDto {
   @IsOptional()
   @IsUUID()
   userId?: string;
+
+  @ApiPropertyOptional({ description: 'Filter by team ID' })
+  @IsOptional()
+  @IsUUID()
+  teamId?: string;
 }

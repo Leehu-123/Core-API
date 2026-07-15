@@ -12,7 +12,7 @@ export class SalesOrdersController {
   constructor(private readonly salesOrdersService: SalesOrdersService) {}
 
   @Get()
-  @Permissions('orders.read')
+  @Permissions('sales_orders.read')
   @UseGuards(PermissionsGuard)
   @ApiOperation({ summary: 'List sales orders' })
   findAll(@CurrentUser() user: JwtPayload, @Query() query: QuerySalesOrderDto) {
@@ -20,7 +20,7 @@ export class SalesOrdersController {
   }
 
   @Get(':id')
-  @Permissions('orders.read')
+  @Permissions('sales_orders.read')
   @UseGuards(PermissionsGuard)
   @ApiOperation({ summary: 'Get sales order details' })
   findOne(@Param('id', ParseUUIDPipe) id: string, @CurrentUser() user: JwtPayload) {
@@ -28,7 +28,7 @@ export class SalesOrdersController {
   }
 
   @Post()
-  @Permissions('orders.write')
+  @Permissions('sales_orders.write')
   @UseGuards(PermissionsGuard)
   @ApiOperation({ summary: 'Create sales order' })
   create(@Body() dto: CreateSalesOrderDto, @CurrentUser() user: JwtPayload) {
@@ -36,7 +36,7 @@ export class SalesOrdersController {
   }
 
   @Put(':id')
-  @Permissions('orders.write')
+  @Permissions('sales_orders.write')
   @UseGuards(PermissionsGuard)
   @ApiOperation({ summary: 'Update sales order' })
   update(@Param('id', ParseUUIDPipe) id: string, @Body() dto: UpdateSalesOrderDto, @CurrentUser() user: JwtPayload) {
@@ -44,7 +44,7 @@ export class SalesOrdersController {
   }
 
   @Post(':id/confirm')
-  @Permissions('orders.write')
+  @Permissions('sales_orders.write')
   @UseGuards(PermissionsGuard)
   @ApiOperation({ summary: 'Confirm sales order (NEW -> CONFIRMED)' })
   confirm(@Param('id', ParseUUIDPipe) id: string, @CurrentUser() user: JwtPayload) {
@@ -52,7 +52,7 @@ export class SalesOrdersController {
   }
 
   @Post(':id/payments')
-  @Permissions('orders.write')
+  @Permissions('sales_orders.write')
   @UseGuards(PermissionsGuard)
   @ApiOperation({ summary: 'Add payment to sales order' })
   addPayment(@Param('id', ParseUUIDPipe) id: string, @Body() dto: AddPaymentDto, @CurrentUser() user: JwtPayload) {
@@ -60,7 +60,7 @@ export class SalesOrdersController {
   }
 
   @Patch(':id/status')
-  @Permissions('orders.write')
+  @Permissions('sales_orders.write')
   @UseGuards(PermissionsGuard)
   @ApiOperation({ summary: 'Update sales order status' })
   updateStatus(
@@ -72,7 +72,7 @@ export class SalesOrdersController {
   }
 
   @Post(':id/cancel')
-  @Permissions('orders.write')
+  @Permissions('sales_orders.write')
   @UseGuards(PermissionsGuard)
   @ApiOperation({ summary: 'Cancel sales order' })
   cancel(@Param('id', ParseUUIDPipe) id: string, @CurrentUser() user: JwtPayload) {
@@ -80,7 +80,7 @@ export class SalesOrdersController {
   }
 
   @Delete(':id')
-  @Permissions('orders.delete')
+  @Permissions('sales_orders.delete')
   @UseGuards(PermissionsGuard)
   @ApiOperation({ summary: 'Soft delete sales order' })
   softRemove(@Param('id', ParseUUIDPipe) id: string, @CurrentUser() user: JwtPayload) {
@@ -88,7 +88,7 @@ export class SalesOrdersController {
   }
 
   @Delete(':id/hard')
-  @Permissions('orders.delete')
+  @Permissions('sales_orders.delete')
   @UseGuards(PermissionsGuard)
   @ApiOperation({ summary: 'Hard delete sales order' })
   hardRemove(@Param('id', ParseUUIDPipe) id: string, @CurrentUser() user: JwtPayload) {
