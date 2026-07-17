@@ -38,7 +38,12 @@ export class UpdateUserDto {
   @IsBoolean()
   isActive?: boolean;
 
-  @ApiPropertyOptional({ example: ['sales', 'viewer'] })
+  @ApiPropertyOptional({ example: 'sale', description: 'Scope of role update: sale, warehouse, or undefined for all' })
+  @IsOptional()
+  @IsString()
+  roleScope?: string;
+
+    @ApiPropertyOptional({ example: ['sales', 'viewer'] })
   @IsOptional()
   @IsArray()
   @IsString({ each: true })

@@ -5,6 +5,19 @@ import { AuditLogService } from '../../common/services';
 import { PrismaService } from '../../prisma/prisma.service';
 import { CreateUserDto, UpdateUserDto, UserFilterDto } from './dto';
 
+
+// Role groups for scope-based role management
+const ROLE_GROUPS: Record<string, string[]> = {
+  sale: ['sales', 'sale_admin', 'sale_lead', 'accountant'],
+  warehouse: ['thukho', 'viewer', 'warehouse', 'kinhdoanh', 'giacong'],
+  shared: ['admin', 'ketoan', 'manager'],
+};
+
+function getRolesInScope(scope: string): string[] {
+  const scopeRoles = ROLE_GROUPS[scope] || [];
+  return [...scopeRoles, ...ROLE_GROUPS.shared];
+}
+
 @Injectable()
 export class UsersService {
   constructor(
@@ -162,12 +175,28 @@ export class UsersService {
       data: updateData,
     });
 
-    // Update roles if provided
+    // Update roles if provided (scope-aware)
     if (dto.roleNames !== undefined) {
-      // Delete existing role assignments
-      await this.prisma.userRole.deleteMany({
-        where: { userId: id },
-      });
+      if (dto.roleScope) {
+        // Scope-aware: only delete roles belonging to this scope
+        const scopeRoleNames = getRolesInScope(dto.roleScope);
+        const scopeRoles = await this.prisma.role.findMany({
+          where: { name: { in: scopeRoleNames }, companyId },
+        });
+        const scopeRoleIds = scopeRoles.map(r => r.id);
+        
+        // Delete only roles in this scope
+        if (scopeRoleIds.length > 0) {
+          await this.prisma.userRole.deleteMany({
+            where: { userId: id, roleId: { in: scopeRoleIds } },
+          });
+        }
+      } else {
+        // No scope: delete ALL roles (backward compatible)
+        await this.prisma.userRole.deleteMany({
+          where: { userId: id },
+        });
+      }
 
       // Create new role assignments
       if (dto.roleNames.length > 0) {
@@ -184,6 +213,7 @@ export class UsersService {
               userId: id,
               roleId: role.id,
             })),
+            skipDuplicates: true,
           });
         }
       }

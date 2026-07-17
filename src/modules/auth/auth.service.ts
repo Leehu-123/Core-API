@@ -169,7 +169,7 @@ export class AuthService {
       const roleConfigs = [
         { name: 'owner', description: 'Company owner with full access', permissions: allPermissions.map(p => p.name) },
         { name: 'admin', description: 'Administrator with full access', permissions: allPermissions.map(p => p.name) },
-        { name: 'sales', description: 'Sales staff', permissions: ['products.read', 'customers.read', 'customers.write'] },
+        { name: 'sales', description: 'Sales staff', permissions: ['products.read', 'customers.read', 'customers.write', 'quotes.read', 'quotes.write', 'sales_tasks.read', 'sales_tasks.write', 'business_trips.read', 'business_trips.write', 'opportunities.read', 'opportunities.write', 'reports.read', 'sales_orders.read', 'sales_orders.write'] },
         { name: 'warehouse', description: 'Warehouse staff', permissions: ['products.read', 'products.write'] },
         { name: 'viewer', description: 'Read-only access', permissions: allPermissions.filter(p => p.name.endsWith('.read')).map(p => p.name) },
       ];

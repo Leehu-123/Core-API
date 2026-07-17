@@ -13,10 +13,10 @@ export class CreateCustomerDto {
   @IsNotEmpty()
   name: string;
 
-  @ApiPropertyOptional({ example: '+66891234567' })
-  @IsOptional()
+  @ApiProperty({ example: '+66891234567' })
+  @IsNotEmpty()
   @IsString()
-  phone?: string;
+  phone: string;
 
   @ApiPropertyOptional({ example: 'contact@acme.com' })
   @IsOptional()

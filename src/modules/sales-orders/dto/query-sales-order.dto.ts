@@ -14,7 +14,7 @@ export enum SalesOrderStatus {
 export enum PaymentStatus {
   UNPAID = 'UNPAID',
   PARTIAL = 'PARTIAL',
-  PAID = 'PAID',
+  FULLY_PAID = 'FULLY_PAID',
 }
 
 export class QuerySalesOrderDto extends PaginationDto {

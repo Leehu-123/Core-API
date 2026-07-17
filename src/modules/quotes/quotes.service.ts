@@ -19,7 +19,7 @@ export class QuotesService {
     private readonly notifications: NotificationsService,
   ) {}
 
-  async findAll(companyId: string, query: QueryQuoteDto) {
+  async findAll(companyId: string, query: QueryQuoteDto, salesUserId?: string) {
     const { status, customerId, search, page = 1, limit = 20 } = query;
     const skip = (page - 1) * limit;
 
@@ -27,6 +27,12 @@ export class QuotesService {
       companyId,
       deletedAt: null,
     };
+
+    if (salesUserId) {
+      where.customer = {
+        assignedToId: salesUserId,
+      };
+    }
 
     if (status) {
       where.status = status;

@@ -41,6 +41,7 @@ import { KpisModule } from './modules/kpis/kpis.module';
 import { BusinessTripsModule } from './modules/business-trips/business-trips.module';
 import { NotificationsModule } from './modules/notifications/notifications.module';
 import { UploadModule } from './modules/upload/upload.module';
+import { ReportsModule } from './modules/reports/reports.module';
 @Module({
   imports: [
     ConfigModule.forRoot({
@@ -90,6 +91,7 @@ import { UploadModule } from './modules/upload/upload.module';
     KpisModule,
     BusinessTripsModule,
     UploadModule,
+    ReportsModule,
   ],
   providers: [
     {

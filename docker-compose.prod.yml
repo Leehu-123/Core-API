@@ -10,6 +10,8 @@ services:
       - JWT_SECRET=dafa-warehouse-secret-key-2024
     ports:
       - "4000:3003"
+    volumes:
+      - ./uploads:/app/uploads
     networks:
       - app_network
 networks:

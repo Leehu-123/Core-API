@@ -25,7 +25,9 @@ export class QuotesController {
   @Get()
   @Permissions('quotes.read')
   findAll(@CurrentUser() user: JwtPayload, @Query() query: QueryQuoteDto) {
-    return this.quotesService.findAll(user.companyId, query);
+    const isSales = user.roles?.some(r => r.toLowerCase() === 'sales' || r.toLowerCase() === 'sale');
+    const salesUserId = isSales ? user.sub : undefined;
+    return this.quotesService.findAll(user.companyId, query, salesUserId);
   }
 
   @Get(':id')

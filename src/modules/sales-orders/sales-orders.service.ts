@@ -137,7 +137,7 @@ export class SalesOrdersService {
         quoteId: dto.quoteId,
         projectName: dto.projectName,
         status: 'NEW',
-        paymentStatus: total > 0 ? 'UNPAID' : 'PAID',
+        paymentStatus: Math.round(total) > 0 ? 'UNPAID' : 'FULLY_PAID',
         subtotal,
         discount: orderDiscount,
         vatRate,
@@ -158,6 +158,15 @@ export class SalesOrdersService {
         items: true,
       },
     });
+
+    if (dto.opportunityId) {
+      try {
+        await this.prisma.opportunity.update({
+          where: { id: dto.opportunityId },
+          data: { stage: 'WON' },
+        });
+      } catch (err) {}
+    }
 
     await this.auditLogService.log({
       companyId,
@@ -241,12 +250,12 @@ export class SalesOrdersService {
         updateData.remainingAmount = total - existing.paidAmount;
 
         // Recalculate payment status
-        if (total === 0) {
-          updateData.paymentStatus = 'PAID';
+        if (Math.round(total) === 0) {
+          updateData.paymentStatus = 'FULLY_PAID';
         } else if (existing.paidAmount <= 0) {
           updateData.paymentStatus = 'UNPAID';
-        } else if (existing.paidAmount >= total) {
-          updateData.paymentStatus = 'PAID';
+        } else if (Math.round(existing.paidAmount) >= Math.round(total)) {
+          updateData.paymentStatus = 'FULLY_PAID';
         } else {
           updateData.paymentStatus = 'PARTIAL';
         }
@@ -267,8 +276,8 @@ export class SalesOrdersService {
 
         if (existing.paidAmount <= 0) {
           updateData.paymentStatus = 'UNPAID';
-        } else if (existing.paidAmount >= total) {
-          updateData.paymentStatus = 'PAID';
+        } else if (Math.round(existing.paidAmount) >= Math.round(total)) {
+          updateData.paymentStatus = 'FULLY_PAID';
         } else {
           updateData.paymentStatus = 'PARTIAL';
         }
@@ -352,8 +361,8 @@ export class SalesOrdersService {
       const newRemainingAmount = existing.total - newPaidAmount;
 
       let paymentStatus = 'UNPAID';
-      if (newPaidAmount >= existing.total) {
-        paymentStatus = 'PAID';
+      if (Math.round(newPaidAmount) >= Math.round(existing.total)) {
+        paymentStatus = 'FULLY_PAID';
       } else if (newPaidAmount > 0) {
         paymentStatus = 'PARTIAL';
       }
@@ -408,7 +417,7 @@ export class SalesOrdersService {
       );
     }
 
-    if (status === 'COMPLETED' && existing.remainingAmount > 0) {
+    if (status === 'COMPLETED' && Math.round(existing.remainingAmount) > 0) {
       throw new BadRequestException('Cannot complete an order that is not fully paid');
     }
 

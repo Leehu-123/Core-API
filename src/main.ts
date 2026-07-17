@@ -11,7 +11,10 @@ async function bootstrap() {
   const app = await NestFactory.create(AppModule);
 
   // Security
-  app.use(helmet());
+  app.use(helmet({
+    crossOriginResourcePolicy: { policy: 'cross-origin' },
+    contentSecurityPolicy: false,
+  }));
 
   // CORS
   const corsOrigins = (process.env.CORS_ORIGINS || '').split(',').filter(Boolean);
@@ -30,6 +33,12 @@ async function bootstrap() {
       transformOptions: {
         enableImplicitConversion: true,
       },
+      exceptionFactory: (errors) => {
+        const { BadRequestException } = require('@nestjs/common');
+        const messages = errors.map(e => Object.values(e.constraints || {})).flat();
+        console.error('VALIDATION ERRORS:', JSON.stringify(errors.map(e => ({ property: e.property, constraints: e.constraints })), null, 2));
+        return new BadRequestException(messages);
+      }
     }),
   );
 

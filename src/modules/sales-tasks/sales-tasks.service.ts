@@ -11,10 +11,21 @@ export class SalesTasksService {
     private readonly auditLogService: AuditLogService,
   ) {}
 
-  async findAll(companyId: string, query: QuerySalesTaskDto) {
+  async findAll(companyId: string, query: QuerySalesTaskDto, salesUserId?: string) {
     const where: any = {
       companyId,
     };
+
+    if (salesUserId) {
+      where.AND = [
+        {
+          OR: [
+            { assignedToId: salesUserId },
+            { customer: { assignedToId: salesUserId } }
+          ]
+        }
+      ];
+    }
 
     if (query.status) {
       where.status = query.status;

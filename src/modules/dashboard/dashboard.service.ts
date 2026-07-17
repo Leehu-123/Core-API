@@ -33,7 +33,7 @@ export class DashboardService {
     const newCustomers = await this.prisma.customer.count({ where: customerWhere });
 
     // Opportunities
-    const oppWhere: any = { companyId, deletedAt: null, stage: { notIn: ['CLOSED_WON', 'CLOSED_LOST'] } };
+    const oppWhere: any = { companyId, deletedAt: null, stage: { notIn: ['WON', 'LOST'] } };
     if (isSalesOnly && userId) oppWhere.assignedToId = userId;
     const activeOpportunitiesList = await this.prisma.opportunity.findMany({ where: oppWhere });
     const activeOpportunities = activeOpportunitiesList.length;
@@ -42,17 +42,17 @@ export class DashboardService {
     // Quotes
     const quoteWhere: any = { companyId, deletedAt: null };
     if (isSalesOnly && userId) quoteWhere.createdById = userId;
-    const quoteSent = await this.prisma.quote.count({ where: { ...quoteWhere, status: 'SENT' } });
+    const quoteSent = await this.prisma.quote.count({ where: { ...quoteWhere, status: { not: 'DRAFT' } } });
     const quotesPending = await this.prisma.quote.count({ where: { ...quoteWhere, status: 'DRAFT' } });
 
     // Close Rate (this month)
     const closeWhere: any = { companyId, deletedAt: null, updatedAt: { gte: firstDayOfMonth } };
     if (isSalesOnly && userId) closeWhere.assignedToId = userId;
     const closedWon = await this.prisma.opportunity.count({
-      where: { ...closeWhere, stage: 'CLOSED_WON' }
+      where: { ...closeWhere, stage: 'WON' }
     });
     const closedTotal = await this.prisma.opportunity.count({
-      where: { ...closeWhere, stage: { in: ['CLOSED_WON', 'CLOSED_LOST'] } }
+      where: { ...closeWhere, stage: { in: ['WON', 'LOST'] } }
     });
     const closeRate = closedTotal > 0 ? Math.round((closedWon / closedTotal) * 100) : 0;
 
@@ -90,7 +90,7 @@ export class DashboardService {
     }
 
     // Pipeline by stage
-    const stages = ['NEW_LEAD', 'QUALIFIED', 'PROPOSAL', 'NEGOTIATION', 'CLOSED_WON', 'CLOSED_LOST'];
+    const stages = ['NEW_LEAD', 'CONTACTED', 'SURVEYED', 'CONSULTING', 'QUOTE_SENT', 'NEGOTIATING', 'CONTRACT_PENDING', 'WON', 'LOST'];
     const pipelineByStage = [];
     for (const stage of stages) {
       const opps = await this.prisma.opportunity.findMany({
@@ -104,7 +104,23 @@ export class DashboardService {
     }
 
     // Top Products
-    const topProducts: Array<{ name: string; revenue: number; count: number }> = [];
+    const ordersThisMonthWithItems = await this.prisma.salesOrder.findMany({
+      where: { companyId, deletedAt: null, createdAt: { gte: firstDayOfMonth }, status: { not: 'CANCELLED' }, ...userFilter },
+      include: { items: { include: { product: true } } }
+    });
+
+    const productMap = new Map<string, { name: string; revenue: number; count: number }>();
+    ordersThisMonthWithItems.forEach(order => {
+      order.items.forEach(item => {
+        if (item.product) {
+          const existing = productMap.get(item.product.id) || { name: `${item.product.code} - ${item.product.name}`, revenue: 0, count: 0 };
+          existing.revenue += item.total;
+          existing.count += item.quantity;
+          productMap.set(item.product.id, existing);
+        }
+      });
+    });
+    const topProducts = Array.from(productMap.values()).sort((a, b) => b.revenue - a.revenue).slice(0, 5);
     
     // Revenue by user
     const users = await this.prisma.user.findMany({ where: { companyId, deletedAt: null } });

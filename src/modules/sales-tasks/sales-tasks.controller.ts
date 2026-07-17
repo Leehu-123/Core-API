@@ -17,7 +17,9 @@ export class SalesTasksController {
   @ApiOperation({ summary: 'List sales tasks with filters and pagination' })
   @ApiResponse({ status: 200, description: 'Paginated list of sales tasks' })
   findAll(@CurrentUser() user: JwtPayload, @Query() query: QuerySalesTaskDto) {
-    return this.salesTasksService.findAll(user.companyId, query);
+    const isSales = user.roles?.some(r => r.toLowerCase() === 'sales' || r.toLowerCase() === 'sale');
+    const salesUserId = isSales ? user.sub : undefined;
+    return this.salesTasksService.findAll(user.companyId, query, salesUserId);
   }
 
   @Get(':id')

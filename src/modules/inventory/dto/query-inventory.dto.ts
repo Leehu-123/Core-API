@@ -26,9 +26,8 @@ export class QueryInventoryDto {
 
   @ApiPropertyOptional({ description: 'Lọc theo ID vị trí' })
   @IsOptional()
-  @Type(() => Number)
-  @IsInt()
-  locationId?: number;
+  @IsString()
+  locationId?: string;
 
   @ApiPropertyOptional({ description: 'Trạng thái (tot, vo, lo, ...)' })
   @IsOptional()
