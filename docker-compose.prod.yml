@@ -1,8 +1,8 @@
 version: '3.8'
 services:
   core_api:
-    build: .
     container_name: core_api_app
+    image: ghcr.io/leehu-123/core-api:latest
     restart: always
     environment:
       - DATABASE_URL=postgresql://admin:secretpassword@postgres_db:5432/warehouse_db?schema=public

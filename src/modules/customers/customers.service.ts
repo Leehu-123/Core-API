@@ -1,4 +1,4 @@
-import { Injectable, NotFoundException } from '@nestjs/common';
+import { Injectable, NotFoundException, ConflictException } from '@nestjs/common';
 import { PrismaService } from '../../prisma/prisma.service';
 import { AuditLogService } from '../../common/services';
 import { PaginationMeta } from '../../common/dto/api-response.dto';
@@ -157,9 +157,25 @@ export class CustomersService {
   }
 
   async create(companyId: string, userId: string, dto: CreateCustomerDto) {
+    // Check phone uniqueness
+    if (dto.phone) {
+      const existingByPhone = await this.prisma.customer.findFirst({
+        where: { companyId, phone: dto.phone, deletedAt: null },
+      });
+      if (existingByPhone) {
+        throw new ConflictException(`Số điện thoại "${dto.phone}" đã tồn tại trong hệ thống (KH: ${existingByPhone.name}, Mã: ${existingByPhone.code})`);
+      }
+    }
+
+    const mappedData = this.mapCustomerDto(dto, await this.generateCustomerCode(companyId));
+    // Auto-assign to creator if no assignedToId provided
+    if (!mappedData.assignedToId) {
+      mappedData.assignedToId = userId;
+    }
+
     const customer = await this.prisma.customer.create({
       data: {
-        ...this.mapCustomerDto(dto, await this.generateCustomerCode(companyId)),
+        ...mappedData,
         companyId,
         createdById: userId,
         updatedById: userId,
@@ -180,6 +196,17 @@ export class CustomersService {
 
   async update(id: string, companyId: string, userId: string, dto: UpdateCustomerDto) {
     const existing = await this.findOne(id, companyId);
+
+    // Check phone uniqueness on update
+    const source: any = dto;
+    if (source.phone) {
+      const existingByPhone = await this.prisma.customer.findFirst({
+        where: { companyId, phone: source.phone, deletedAt: null, id: { not: id } },
+      });
+      if (existingByPhone) {
+        throw new ConflictException(`Số điện thoại "${source.phone}" đã tồn tại trong hệ thống (KH: ${existingByPhone.name}, Mã: ${existingByPhone.code})`);
+      }
+    }
 
     const updated = await this.prisma.customer.update({
       where: { id },

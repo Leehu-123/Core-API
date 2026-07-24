@@ -1,4 +1,4 @@
-import { Body, Controller, Delete, Get, Param, ParseUUIDPipe, Put, Post, Query, UseGuards } from '@nestjs/common';
+import { Body, Controller, Delete, Get, Param, ParseUUIDPipe, Put, Post, Query, UseGuards, ForbiddenException } from '@nestjs/common';
 import { ApiBearerAuth, ApiOperation, ApiResponse, ApiTags } from '@nestjs/swagger';
 import { CurrentUser, JwtPayload, Permissions } from '../../common/decorators';
 import { PermissionsGuard } from '../../common/guards';
@@ -51,9 +51,16 @@ export class CustomersController {
   @Delete(':id')
   @Permissions('customers.write')
   @UseGuards(PermissionsGuard)
-  @ApiOperation({ summary: 'Soft delete a customer' })
+  @ApiOperation({ summary: 'Soft delete a customer (admin/manager only)' })
   @ApiResponse({ status: 200, description: 'Customer deleted' })
+  @ApiResponse({ status: 403, description: 'Sales users cannot delete customers' })
   remove(@Param('id', ParseUUIDPipe) id: string, @CurrentUser() user: JwtPayload) {
+    // Only admin, owner, manager roles can delete customers
+    const adminRoles = ['owner', 'admin', 'administrator', 'manager'];
+    const hasAdminRole = user.roles?.some((r: string) => adminRoles.includes(r.toLowerCase()));
+    if (!hasAdminRole) {
+      throw new ForbiddenException('Nhân viên sale không có quyền xóa khách hàng. Vui lòng liên hệ quản trị viên để được phê duyệt.');
+    }
     return this.customersService.remove(id, user.companyId, user.sub);
   }
 }
