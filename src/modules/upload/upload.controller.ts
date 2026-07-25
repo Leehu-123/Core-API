@@ -1,28 +1,23 @@
 import { Controller, Post, UseInterceptors, UploadedFile, BadRequestException } from '@nestjs/common';
 import { FileInterceptor } from '@nestjs/platform-express';
 import { ApiTags, ApiConsumes, ApiBody } from '@nestjs/swagger';
-import { diskStorage } from 'multer';
-import { extname } from 'path';
-import { v4 as uuidv4 } from 'uuid';
+import { memoryStorage } from 'multer';
 import { Public } from '../../common/decorators';
+import { UploadService } from './upload.service';
 
 @ApiTags('Upload')
 @Controller('upload')
 export class UploadController {
+  constructor(private readonly uploadService: UploadService) {}
+
   @Public() // Allow unauthenticated uploads for simplicity, or remove if token is sent
   @Post()
   @UseInterceptors(
     FileInterceptor('file', {
-      storage: diskStorage({
-        destination: './uploads',
-        filename: (req, file, cb) => {
-          const uniqueSuffix = uuidv4() + extname(file.originalname);
-          cb(null, `${uniqueSuffix}`);
-        },
-      }),
+      storage: memoryStorage(),
       fileFilter: (req, file, cb) => {
-        if (!file.mimetype.match(/\/(jpg|jpeg|png|gif|webp)$/)) {
-          return cb(new BadRequestException('Only image files are allowed!'), false);
+        if (!file.mimetype.match(/\/(jpg|jpeg|png|gif|webp|pdf|doc|docx|xls|xlsx|csv|txt|zip|rar)$/)) {
+          return cb(new BadRequestException('Invalid file type!'), false);
         }
         cb(null, true);
       },
@@ -43,16 +38,11 @@ export class UploadController {
       },
     },
   })
-  uploadFile(@UploadedFile() file: Express.Multer.File) {
+  async uploadFile(@UploadedFile() file: Express.Multer.File) {
     if (!file) {
       throw new BadRequestException('No file uploaded');
     }
-    // Return the URL where the file can be accessed
-    return {
-      url: `/uploads/${file.filename}`,
-      filename: file.filename,
-      mimetype: file.mimetype,
-      size: file.size,
-    };
+    
+    return await this.uploadService.uploadFile(file);
   }
 }

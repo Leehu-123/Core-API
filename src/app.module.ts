@@ -42,6 +42,16 @@ import { BusinessTripsModule } from './modules/business-trips/business-trips.mod
 import { NotificationsModule } from './modules/notifications/notifications.module';
 import { UploadModule } from './modules/upload/upload.module';
 import { ReportsModule } from './modules/reports/reports.module';
+
+// DAFA Manager
+import { BranchesModule } from './modules/branches/branches.module';
+import { DepartmentsModule } from './modules/departments/departments.module';
+import { DafaTasksModule } from './modules/dafa-tasks/dafa-tasks.module';
+import { KpiCriteriaModule } from './modules/kpi-criteria/kpi-criteria.module';
+import { KpiRecordsModule } from './modules/kpi-records/kpi-records.module';
+import { WorkReportsModule } from './modules/work-reports/work-reports.module';
+import { ReportTemplatesModule } from './modules/report-templates/report-templates.module';
+
 @Module({
   imports: [
     ConfigModule.forRoot({
@@ -92,6 +102,14 @@ import { ReportsModule } from './modules/reports/reports.module';
     BusinessTripsModule,
     UploadModule,
     ReportsModule,
+    // DAFA Manager
+    BranchesModule,
+    DepartmentsModule,
+    DafaTasksModule,
+    KpiCriteriaModule,
+    KpiRecordsModule,
+    WorkReportsModule,
+    ReportTemplatesModule,
   ],
   providers: [
     {

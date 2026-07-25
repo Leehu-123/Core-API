@@ -25,6 +25,8 @@ model Company {
   customers  Customer[]
   roles      Role[]
   auditLogs  AuditLog[]
+  branches   Branch[]
+  telegramBotToken String? @map("telegram_bot_token")
 
   @@map("companies")
 }
@@ -46,6 +48,13 @@ model User {
   updatedById  String?   @map("updated_by_id") @db.Uuid
   teamId       String?   @map("team_id") @db.Uuid
   avatar       String?
+
+  // DAFA Manager fields
+  telegramChatId  String?    @map("telegram_chat_id")
+  jobTitle        String?
+  joinedDate      DateTime?
+  primaryBranchId String?    @map("primary_branch_id") @db.Uuid
+  sortOrder       Int        @default(0) @map("sort_order")
 
   company    Company     @relation(fields: [companyId], references: [id])
   createdBy  User?       @relation("UserCreatedBy", fields: [createdById], references: [id])
@@ -88,6 +97,20 @@ model User {
   businessTrips         BusinessTrip[]
   pushSubscriptions     PushSubscription[]
   locations             UserLocation[]
+
+  // DAFA Manager relations
+  primaryBranch    Branch?            @relation(fields: [primaryBranchId], references: [id], onDelete: SetNull)
+  departmentMember DepartmentMember[]
+  createdTasks     Task[]             @relation("CreatedTasks")
+  assignedTasks    TaskAssignee[]
+  taskComments     TaskComment[]
+  taskAttachments  TaskAttachment[]
+  taskHistories    TaskHistory[]
+  submittedReports WorkReport[]       @relation("SubmittedReports")
+  reviewedReports  WorkReport[]       @relation("ReviewedReports")
+  kpiRecords       KpiRecord[]
+  kpiCriteria      KpiCriteria[]
+  notifications    Notification[]
 
   @@map("users")
 }
@@ -1069,5 +1092,323 @@ model UserLocation {
   @@index([userId])
   @@index([timestamp])
   @@map("user_locations")
+}
+
+
+// =============================================================================
+// DAFA MANAGER ENUMS & MODELS
+// =============================================================================
+
+enum TaskPriority {
+  LOW
+  MEDIUM
+  HIGH
+  URGENT
+}
+
+enum TaskStatus {
+  TODO
+  IN_PROGRESS
+  REVIEW
+  DONE
+  OVERDUE
+}
+
+enum RecurrenceType {
+  DAILY
+  WEEKLY
+  MONTHLY
+}
+
+enum ReportFrequency {
+  DAILY
+  WEEKLY
+  MONTHLY
+}
+
+enum ReportStatus {
+  DRAFT
+  SUBMITTED
+  APPROVED
+  REJECTED
+}
+
+enum EvaluationCycle {
+  WEEKLY
+  MONTHLY
+  QUARTERLY
+}
+
+enum NotificationType {
+  TASK_ASSIGNED
+  TASK_DUE
+  TASK_OVERDUE
+  REPORT_REVIEW
+  KPI_UPDATE
+  SYSTEM
+}
+
+enum KpiStatus {
+  DRAFT
+  APPROVED
+}
+
+model Branch {
+  id        String   @id @default(uuid()) @db.Uuid
+  companyId String   @map("company_id") @db.Uuid
+  name      String
+  code      String   @unique
+  city      String?
+  address   String?
+  isActive  Boolean  @default(true)
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+  sortOrder Int      @default(0) @map("sort_order")
+
+  company     Company      @relation(fields: [companyId], references: [id], onDelete: Cascade)
+  departments Department[]
+  users       User[]
+  tasks       Task[]
+
+  @@index([code])
+  @@index([companyId])
+}
+
+model Department {
+  id          String   @id @default(uuid()) @db.Uuid
+  branchId    String   @db.Uuid
+  name        String
+  code        String   @unique
+  description String?
+  isActive    Boolean  @default(true)
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+  sortOrder   Int      @default(0) @map("sort_order")
+
+  branch          Branch             @relation(fields: [branchId], references: [id], onDelete: Cascade)
+  members         DepartmentMember[]
+  tasks           Task[]
+  reportTemplates ReportTemplate[]
+  workReports     WorkReport[]
+  kpiCriteria     KpiCriteria[]
+
+  @@index([branchId])
+  @@index([code])
+}
+
+model DepartmentMember {
+  id           String   @id @default(uuid()) @db.Uuid
+  departmentId String   @db.Uuid
+  userId       String   @db.Uuid
+  isHead       Boolean  @default(false)
+  joinedAt     DateTime @default(now())
+
+  department Department @relation(fields: [departmentId], references: [id], onDelete: Cascade)
+  user       User       @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@unique([departmentId, userId])
+  @@index([userId])
+}
+
+model Task {
+  id               String          @id @default(uuid()) @db.Uuid
+  companyId        String          @map("company_id") @db.Uuid
+  title            String
+  description      String?
+  createdById      String          @db.Uuid
+  departmentId     String?         @db.Uuid
+  branchId         String?         @db.Uuid
+  priority         TaskPriority    @default(MEDIUM)
+  status           TaskStatus      @default(TODO)
+  deadline         DateTime?
+  isRecurring      Boolean         @default(false)
+  recurrenceType   RecurrenceType?
+  recurrenceConfig Json?
+  parentTaskId     String?         @db.Uuid
+  createdAt        DateTime        @default(now())
+  updatedAt        DateTime        @updatedAt
+
+  createdBy   User             @relation("CreatedTasks", fields: [createdById], references: [id], onDelete: Cascade)
+  department  Department?      @relation(fields: [departmentId], references: [id], onDelete: SetNull)
+  branch      Branch?          @relation(fields: [branchId], references: [id], onDelete: SetNull)
+  parentTask  Task?            @relation("SubTasks", fields: [parentTaskId], references: [id], onDelete: SetNull)
+  subTasks    Task[]           @relation("SubTasks")
+  assignees   TaskAssignee[]
+  comments    TaskComment[]
+  attachments TaskAttachment[]
+  histories   TaskHistory[]
+
+  @@index([companyId])
+  @@index([createdById])
+  @@index([departmentId])
+  @@index([branchId])
+  @@index([parentTaskId])
+}
+
+model TaskAssignee {
+  id         String   @id @default(uuid()) @db.Uuid
+  taskId     String   @db.Uuid
+  userId     String   @db.Uuid
+  assignedAt DateTime @default(now())
+
+  task Task @relation(fields: [taskId], references: [id], onDelete: Cascade)
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@unique([taskId, userId])
+  @@index([userId])
+}
+
+model TaskComment {
+  id        String   @id @default(uuid()) @db.Uuid
+  taskId    String   @db.Uuid
+  authorId  String   @db.Uuid
+  content   String
+  createdAt DateTime @default(now())
+
+  task   Task @relation(fields: [taskId], references: [id], onDelete: Cascade)
+  author User @relation(fields: [authorId], references: [id], onDelete: Cascade)
+
+  @@index([taskId])
+  @@index([authorId])
+}
+
+model TaskAttachment {
+  id           String   @id @default(uuid()) @db.Uuid
+  taskId       String   @db.Uuid
+  uploadedById String   @db.Uuid
+  fileName     String
+  fileUrl      String
+  fileType     String?
+  fileSize     Int?
+  createdAt    DateTime @default(now())
+
+  task       Task @relation(fields: [taskId], references: [id], onDelete: Cascade)
+  uploadedBy User @relation(fields: [uploadedById], references: [id], onDelete: Cascade)
+
+  @@index([taskId])
+  @@index([uploadedById])
+}
+
+model TaskHistory {
+  id           String   @id @default(uuid()) @db.Uuid
+  taskId       String   @db.Uuid
+  changedById  String   @db.Uuid
+  fieldChanged String
+  oldValue     String?
+  newValue     String?
+  changedAt    DateTime @default(now())
+
+  task      Task @relation(fields: [taskId], references: [id], onDelete: Cascade)
+  changedBy User @relation(fields: [changedById], references: [id], onDelete: Cascade)
+
+  @@index([taskId])
+}
+
+model ReportTemplate {
+  id           String          @id @default(uuid()) @db.Uuid
+  companyId    String          @map("company_id") @db.Uuid
+  departmentId String?         @db.Uuid
+  name         String
+  fieldsConfig Json
+  frequency    ReportFrequency
+  isActive     Boolean         @default(true)
+  createdAt    DateTime        @default(now())
+  updatedAt    DateTime        @updatedAt
+
+  department  Department?  @relation(fields: [departmentId], references: [id], onDelete: SetNull)
+  workReports WorkReport[]
+
+  @@index([companyId])
+  @@index([departmentId])
+}
+
+model WorkReport {
+  id              String       @id @default(uuid()) @db.Uuid
+  companyId       String       @map("company_id") @db.Uuid
+  templateId      String       @db.Uuid
+  submittedById   String       @db.Uuid
+  departmentId    String       @db.Uuid
+  reportDate      DateTime
+  reportData      Json
+  status          ReportStatus @default(DRAFT)
+  managerFeedback String?
+  reviewedById    String?      @db.Uuid
+  submittedAt     DateTime?
+  reviewedAt      DateTime?
+  createdAt       DateTime     @default(now())
+
+  template    ReportTemplate @relation(fields: [templateId], references: [id], onDelete: Cascade)
+  submittedBy User           @relation("SubmittedReports", fields: [submittedById], references: [id], onDelete: Cascade)
+  department  Department     @relation(fields: [departmentId], references: [id], onDelete: Cascade)
+  reviewedBy  User?          @relation("ReviewedReports", fields: [reviewedById], references: [id], onDelete: SetNull)
+
+  @@index([companyId])
+  @@index([templateId])
+  @@index([submittedById])
+  @@index([departmentId])
+}
+
+model KpiCriteria {
+  id              String          @id @default(uuid()) @db.Uuid
+  companyId       String          @map("company_id") @db.Uuid
+  departmentId    String          @db.Uuid
+  userId          String?         @db.Uuid
+  name            String
+  description     String?         @db.Text
+  unit            String
+  weightPercent   Float
+  targetValue     Float
+  evaluationCycle EvaluationCycle
+  comparisonType  String          @default("HIGHER_BETTER")
+  isAuto          Boolean         @default(false)
+  autoSource      String?
+  isActive        Boolean         @default(true)
+  createdAt       DateTime        @default(now())
+  updatedAt       DateTime        @updatedAt
+
+  department Department  @relation(fields: [departmentId], references: [id], onDelete: Cascade)
+  user       User?       @relation(fields: [userId], references: [id], onDelete: Cascade)
+  kpiRecords KpiRecord[]
+
+  @@index([companyId])
+  @@index([departmentId])
+}
+
+model KpiRecord {
+  id          String   @id @default(uuid()) @db.Uuid
+  companyId   String   @map("company_id") @db.Uuid
+  criteriaId  String   @db.Uuid
+  userId      String   @db.Uuid
+  actualValue Float
+  score       Float
+  periodStart DateTime
+  periodEnd   DateTime
+  notes       String?
+  status      KpiStatus @default(DRAFT)
+  recordedAt  DateTime @default(now())
+
+  criteria KpiCriteria @relation(fields: [criteriaId], references: [id], onDelete: Cascade)
+  user     User        @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([companyId])
+  @@index([criteriaId])
+  @@index([userId])
+}
+
+model Notification {
+  id        String           @id @default(uuid()) @db.Uuid
+  companyId String           @map("company_id") @db.Uuid
+  userId    String           @db.Uuid
+  title     String
+  message   String
+  type      NotificationType
+  linkUrl   String?
+  isRead    Boolean          @default(false)
+  createdAt DateTime         @default(now())
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([companyId])
+  @@index([userId])
 }
 
