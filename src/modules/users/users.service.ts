@@ -60,6 +60,8 @@ export class UsersService {
           userRoles: {
             include: { role: true },
           },
+          primaryBranch: { select: { id: true, name: true } },
+          departmentMember: { include: { department: { select: { id: true, name: true } } } },
         },
         skip: query.skip,
         take: query.limit,
@@ -74,6 +76,7 @@ export class UsersService {
         return {
           ...this.excludePassword(user),
           roles: userRoles,
+          role: userRoles.length > 0 ? userRoles[0].toUpperCase() : 'EMPLOYEE',
         };
       }),
       meta: new PaginationMeta(query.page, query.limit, total),
@@ -87,6 +90,8 @@ export class UsersService {
         userRoles: {
           include: { role: true },
         },
+        primaryBranch: { select: { id: true, name: true } },
+        departmentMember: { include: { department: { select: { id: true, name: true } } } },
       },
     });
 
@@ -94,7 +99,12 @@ export class UsersService {
       throw new NotFoundException('User not found');
     }
 
-    return this.excludePassword(user);
+    const userRoles = (user as any).userRoles?.map((ur: any) => ur.role.name) || [];
+    return {
+      ...this.excludePassword(user),
+      roles: userRoles,
+      role: userRoles.length > 0 ? userRoles[0].toUpperCase() : 'EMPLOYEE',
+    };
   }
 
   async create(companyId: string, userId: string, dto: CreateUserDto) {
@@ -111,8 +121,20 @@ export class UsersService {
         companyId,
         createdById: userId,
         updatedById: userId,
+        jobTitle: dto.jobTitle,
+        primaryBranchId: dto.primaryBranchId || dto.branchId || null,
       },
     });
+
+    if (dto.departmentIds && dto.departmentIds.length > 0) {
+      await this.prisma.departmentMember.createMany({
+        data: dto.departmentIds.map((deptId) => ({
+          userId: user.id,
+          departmentId: deptId,
+        })),
+        skipDuplicates: true,
+      });
+    }
 
     // Assign roles if provided
     if (dto.roleNames && dto.roleNames.length > 0) {
@@ -165,6 +187,11 @@ export class UsersService {
     if (dto.phone !== undefined) updateData.phone = dto.phone;
     if (dto.teamId !== undefined) updateData.teamId = dto.teamId === "" ? null : dto.teamId;
     if (dto.isActive !== undefined) updateData.isActive = dto.isActive;
+    if (dto.jobTitle !== undefined) updateData.jobTitle = dto.jobTitle;
+    if (dto.primaryBranchId !== undefined || dto.branchId !== undefined) {
+      const bId = dto.primaryBranchId || dto.branchId;
+      updateData.primaryBranchId = bId === "" ? null : bId;
+    }
 
     if (dto.password) {
       updateData.passwordHash = await bcrypt.hash(dto.password, 12);
@@ -174,6 +201,21 @@ export class UsersService {
       where: { id },
       data: updateData,
     });
+
+    if (dto.departmentIds !== undefined) {
+      await this.prisma.departmentMember.deleteMany({
+        where: { userId: id },
+      });
+      if (dto.departmentIds.length > 0) {
+        await this.prisma.departmentMember.createMany({
+          data: dto.departmentIds.map((deptId) => ({
+            userId: id,
+            departmentId: deptId,
+          })),
+          skipDuplicates: true,
+        });
+      }
+    }
 
     // Update roles if provided (scope-aware)
     if (dto.roleNames !== undefined) {

@@ -43,9 +43,30 @@ export class UpdateUserDto {
   @IsString()
   roleScope?: string;
 
-    @ApiPropertyOptional({ example: ['sales', 'viewer'] })
+  @ApiPropertyOptional({ example: ['sales', 'viewer'] })
   @IsOptional()
   @IsArray()
   @IsString({ each: true })
   roleNames?: string[];
+
+  @ApiPropertyOptional({ example: 'Manager' })
+  @IsOptional()
+  @IsString()
+  jobTitle?: string;
+
+  @ApiPropertyOptional({ example: '123e4567-e89b-12d3-a456-426614174000' })
+  @IsOptional()
+  @IsString()
+  primaryBranchId?: string;
+
+  @ApiPropertyOptional({ example: '123e4567-e89b-12d3-a456-426614174000', description: 'Alias for primaryBranchId' })
+  @IsOptional()
+  @IsString()
+  branchId?: string;
+
+  @ApiPropertyOptional({ example: ['dept-1', 'dept-2'], description: 'Department IDs to assign' })
+  @IsOptional()
+  @IsArray()
+  @IsString({ each: true })
+  departmentIds?: string[];
 }
