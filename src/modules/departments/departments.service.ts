@@ -16,7 +16,7 @@ export class DepartmentsService {
       },
       include: {
         branch: { select: { name: true, city: true } },
-        members: { include: { user: { select: { id: true, fullName: true, email: true, avatarUrl: true } } } },
+        members: { include: { user: { select: { id: true, fullName: true, email: true, avatar: true } } } },
         manager: { select: { id: true, fullName: true } }
       }
     });
