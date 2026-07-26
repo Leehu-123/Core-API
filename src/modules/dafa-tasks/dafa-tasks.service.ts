@@ -173,23 +173,29 @@ export class DafaTasksService {
       : (role || '').toString().toUpperCase();
 
     let roleWhere: any = { companyId };
-    if (normRole === 'MANAGER') {
+    if (normRole === 'ADMIN' || normRole === 'OWNER' || normRole === 'ADMINISTRATOR') {
+      // Admin sees all tasks
+    } else if (normRole === 'MANAGER') {
       const managerDepts = await this.prisma.departmentMember.findMany({
         where: { userId },
         select: { departmentId: true }
       });
       const deptIds = managerDepts.map(d => d.departmentId);
-      if (deptIds.length > 0) {
-        roleWhere.OR = [
-          { departmentId: { in: deptIds } },
-          { assignees: { some: { user: { departmentMember: { some: { departmentId: { in: deptIds } } } } } } },
-          { createdById: userId }
-        ];
-      } else {
-        roleWhere.assignees = { some: { userId } };
-      }
-    } else if (normRole === 'EMPLOYEE' || normRole === 'SALES') {
-      roleWhere.assignees = { some: { userId } };
+      roleWhere.OR = [
+        { departmentId: { in: deptIds } },
+        { assignees: { some: { userId } } },
+        { followers: { some: { userId } } },
+        { createdById: userId },
+        { reportToId: userId }
+      ];
+    } else {
+      // Non-admin non-manager (EMPLOYEE, ACCOUNTANT, SALES...) only see tasks they are involved in
+      roleWhere.OR = [
+        { assignees: { some: { userId } } },
+        { followers: { some: { userId } } },
+        { createdById: userId },
+        { reportToId: userId }
+      ];
     }
 
     const [

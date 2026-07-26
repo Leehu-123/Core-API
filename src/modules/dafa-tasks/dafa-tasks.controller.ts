@@ -25,10 +25,12 @@ export class DafaTasksController {
 
   @Get('dashboard-stats')
   getDashboardStats(@Request() req: any) {
+    const role = req.user.role || (Array.isArray(req.user.roles) ? req.user.roles[0] : req.user.roles) || '';
+    const userId = req.user.sub || req.user.id;
     return this.dafaTasksService.getDashboardStats(
       req.user.companyId,
-      req.user.id,
-      req.user.role
+      userId,
+      role
     );
   }
 
