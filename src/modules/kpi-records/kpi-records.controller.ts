@@ -34,12 +34,16 @@ export class KpiRecordsController {
 
   @Get('pending')
   findPendingSheets(@Request() req: any, @Query() query: any) {
-    return this.kpiRecordsService.findPendingSheets(req.user.companyId, query);
+    const role = req.user.role || (Array.isArray(req.user.roles) ? req.user.roles[0] : req.user.roles) || '';
+    const userId = req.user.sub || req.user.id;
+    return this.kpiRecordsService.findPendingSheets(req.user.companyId, userId, role, query);
   }
 
   @Get()
   findAll(@Request() req: any, @Query() query: any) {
-    return this.kpiRecordsService.findAll(req.user.companyId, query);
+    const role = req.user.role || (Array.isArray(req.user.roles) ? req.user.roles[0] : req.user.roles) || '';
+    const userId = req.user.sub || req.user.id;
+    return this.kpiRecordsService.findAll(req.user.companyId, userId, role, query);
   }
 
   @Get(':id')

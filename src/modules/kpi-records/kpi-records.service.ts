@@ -217,18 +217,34 @@ export class KpiRecordsService {
     }
   }
 
-  async findPendingSheets(companyId: string, query?: any) {
-    const where: any = { user: { companyId } };
+  async findPendingSheets(companyId: string, userId: string, role: string, query?: any) {
+    const normRole = (role || '').toString().toUpperCase();
+    const userWhere: any = { companyId };
 
-    if (query?.status) {
-      where.status = query.status;
+    if (normRole === 'ADMIN' || normRole === 'OWNER' || normRole === 'ACCOUNTANT') {
+      // Full visibility across company
+    } else if (normRole === 'MANAGER') {
+      const managerDepts = await this.prisma.departmentMember.findMany({
+        where: { userId },
+        select: { departmentId: true }
+      });
+      const deptIds = managerDepts.map(d => d.departmentId);
+      userWhere.OR = [
+        { id: userId },
+        { departmentMember: { some: { departmentId: { in: deptIds } } } }
+      ];
+    } else {
+      userWhere.id = userId;
     }
 
     if (query?.departmentId) {
-      where.user = {
-        companyId,
-        departmentMember: { some: { departmentId: query.departmentId } },
-      };
+      userWhere.departmentMember = { some: { departmentId: query.departmentId } };
+    }
+
+    const where: any = { user: userWhere };
+
+    if (query?.status) {
+      where.status = query.status;
     }
 
     const records = await this.prisma.kpiRecord.findMany({
@@ -282,21 +298,10 @@ export class KpiRecordsService {
       }
     }
 
-    let sheets = Array.from(sheetMap.values());
-
-    if (query?.search) {
-      const q = query.search.toLowerCase();
-      sheets = sheets.filter(
-        (s) =>
-          s.user.fullName.toLowerCase().includes(q) ||
-          (s.user.email && s.user.email.toLowerCase().includes(q))
-      );
-    }
-
-    return sheets;
+    return Array.from(sheetMap.values());
   }
 
-  async approve(dto: { userId: string; periodStart: string; periodEnd: string; action: 'APPROVE' | 'UNLOCK' }, companyId: string) {
+  async approve(dto: { userId: string; periodStart: string; periodEnd: string; action?: 'APPROVE' | 'REJECT' }, companyId: string) {
     const { userId, periodStart, periodEnd, action } = dto;
     const newStatus = action === 'APPROVE' ? 'APPROVED' : 'DRAFT';
 
@@ -335,9 +340,27 @@ export class KpiRecordsService {
     return { count: deleted.count };
   }
 
-  async findAll(companyId: string, query?: any) {
-    const where: any = {};
-    where.user = { companyId };
+  async findAll(companyId: string, userId: string, role: string, query?: any) {
+    const normRole = (role || '').toString().toUpperCase();
+    const userWhere: any = { companyId };
+
+    if (normRole === 'ADMIN' || normRole === 'OWNER' || normRole === 'ACCOUNTANT') {
+      // Full visibility
+    } else if (normRole === 'MANAGER') {
+      const managerDepts = await this.prisma.departmentMember.findMany({
+        where: { userId },
+        select: { departmentId: true }
+      });
+      const deptIds = managerDepts.map(d => d.departmentId);
+      userWhere.OR = [
+        { id: userId },
+        { departmentMember: { some: { departmentId: { in: deptIds } } } }
+      ];
+    } else {
+      userWhere.id = userId;
+    }
+
+    const where: any = { user: userWhere };
 
     if (query?.userId) {
       where.userId = query.userId;
