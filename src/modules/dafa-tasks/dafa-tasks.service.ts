@@ -487,8 +487,19 @@ export class DafaTasksService {
         ? new Date(task.deadline).toLocaleDateString('vi-VN')
         : 'Không có';
 
+      let performer = actorName;
+      if (!performer && actorUserId) {
+        const actor = await this.prisma.user.findUnique({
+          where: { id: actorUserId },
+          select: { fullName: true },
+        });
+        if (actor) performer = actor.fullName;
+      }
+      if (!performer) {
+        performer = fullTask.createdBy?.fullName || 'Hệ thống';
+      }
+
       let message = '';
-      const performer = actorName || fullTask.createdBy?.fullName || 'Hệ thống';
 
       if (type === 'TASK_CREATED') {
         message = `🔔 <b>CÔNG VIỆC MỚI ĐƯỢC GIAO / NẮM THÔNG TIN</b>\n\n📌 <b>Công việc:</b> ${task.title}\n👤 <b>Người tạo:</b> ${performer}\n📝 <b>Mô tả:</b> ${task.description || 'Không có'}\n⚠️ <b>Độ ưu tiên:</b> ${priorityMap[task.priority] || task.priority}\n📅 <b>Hạn chót:</b> ${deadlineStr}\n\n👉 Vui lòng truy cập DAFA Manager để kiểm tra!`;
