@@ -221,7 +221,7 @@ export class KpiRecordsService {
     const normRole = (role || '').toString().toUpperCase();
     const userWhere: any = { companyId };
 
-    if (normRole === 'ADMIN' || normRole === 'OWNER' || normRole === 'ACCOUNTANT') {
+    if (normRole === 'ADMIN' || normRole === 'OWNER' || normRole === 'ACCOUNTANT' || normRole === 'KETOAN') {
       // Full visibility across company
     } else if (normRole === 'MANAGER') {
       const managerDepts = await this.prisma.departmentMember.findMany({
@@ -344,7 +344,7 @@ export class KpiRecordsService {
     const normRole = (role || '').toString().toUpperCase();
     const userWhere: any = { companyId };
 
-    if (normRole === 'ADMIN' || normRole === 'OWNER' || normRole === 'ACCOUNTANT') {
+    if (normRole === 'ADMIN' || normRole === 'OWNER' || normRole === 'ACCOUNTANT' || normRole === 'KETOAN') {
       // Full visibility
     } else if (normRole === 'MANAGER') {
       const managerDepts = await this.prisma.departmentMember.findMany({
