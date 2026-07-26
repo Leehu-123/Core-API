@@ -111,6 +111,8 @@ model User {
   kpiRecords       KpiRecord[]
   kpiCriteria      KpiCriteria[]
   notifications    Notification[]
+  reportedTasks    Task[]         @relation("ReportToTasks")
+  followedTasks    TaskFollower[]
 
   @@map("users")
 }
@@ -1220,6 +1222,7 @@ model Task {
   branchId         String?         @db.Uuid
   priority         TaskPriority    @default(MEDIUM)
   status           TaskStatus      @default(TODO)
+  reportToId       String?         @map("report_to_id") @db.Uuid
   deadline         DateTime?
   isRecurring      Boolean         @default(false)
   recurrenceType   RecurrenceType?
@@ -1229,11 +1232,13 @@ model Task {
   updatedAt        DateTime        @updatedAt
 
   createdBy   User             @relation("CreatedTasks", fields: [createdById], references: [id], onDelete: Cascade)
+  reportTo    User?            @relation("ReportToTasks", fields: [reportToId], references: [id], onDelete: SetNull)
   department  Department?      @relation(fields: [departmentId], references: [id], onDelete: SetNull)
   branch      Branch?          @relation(fields: [branchId], references: [id], onDelete: SetNull)
   parentTask  Task?            @relation("SubTasks", fields: [parentTaskId], references: [id], onDelete: SetNull)
   subTasks    Task[]           @relation("SubTasks")
   assignees   TaskAssignee[]
+  followers   TaskFollower[]
   comments    TaskComment[]
   attachments TaskAttachment[]
   histories   TaskHistory[]
@@ -1256,6 +1261,20 @@ model TaskAssignee {
 
   @@unique([taskId, userId])
   @@index([userId])
+}
+
+model TaskFollower {
+  id        String   @id @default(uuid()) @db.Uuid
+  taskId    String   @map("task_id") @db.Uuid
+  userId    String   @map("user_id") @db.Uuid
+  createdAt DateTime @default(now()) @map("created_at")
+
+  task Task @relation(fields: [taskId], references: [id], onDelete: Cascade)
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@unique([taskId, userId])
+  @@index([userId])
+  @@map("task_followers")
 }
 
 model TaskComment {

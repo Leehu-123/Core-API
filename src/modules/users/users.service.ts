@@ -188,6 +188,7 @@ export class UsersService {
     if (dto.teamId !== undefined) updateData.teamId = dto.teamId === "" ? null : dto.teamId;
     if (dto.isActive !== undefined) updateData.isActive = dto.isActive;
     if (dto.jobTitle !== undefined) updateData.jobTitle = dto.jobTitle;
+    if (dto.telegramChatId !== undefined) updateData.telegramChatId = dto.telegramChatId;
     if (dto.primaryBranchId !== undefined || dto.branchId !== undefined) {
       const bId = dto.primaryBranchId || dto.branchId;
       updateData.primaryBranchId = bId === "" ? null : bId;

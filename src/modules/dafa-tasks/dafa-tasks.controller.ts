@@ -9,7 +9,11 @@ export class DafaTasksController {
 
   @Post()
   create(@Body() createDto: any, @Request() req: any) {
-    return this.dafaTasksService.create({ ...createDto, companyId: req.user.companyId });
+    return this.dafaTasksService.create({
+      ...createDto,
+      companyId: req.user.companyId,
+      createdById: req.user.sub || req.user.id,
+    });
   }
 
   @Get()
@@ -33,7 +37,17 @@ export class DafaTasksController {
 
   @Patch(':id')
   update(@Param('id') id: string, @Body() updateDto: any, @Request() req: any) {
-    return this.dafaTasksService.update(id, updateDto, req.user.companyId);
+    return this.dafaTasksService.update(id, updateDto, req.user.companyId, req.user.sub || req.user.id);
+  }
+
+  @Post(':id/comments')
+  addComment(@Param('id') id: string, @Body() body: { content: string }, @Request() req: any) {
+    return this.dafaTasksService.addComment(id, req.user.sub || req.user.id, body.content, req.user.companyId);
+  }
+
+  @Post(':id/attachments')
+  addAttachment(@Param('id') id: string, @Body() body: any, @Request() req: any) {
+    return this.dafaTasksService.addAttachment(id, req.user.sub || req.user.id, body, req.user.companyId);
   }
 
   @Delete(':id')

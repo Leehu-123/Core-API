@@ -6,6 +6,7 @@ import {
   Param,
   ParseUUIDPipe,
   Put,
+  Patch,
   Post,
   Query,
   UseGuards,
@@ -56,7 +57,7 @@ export class UsersController {
   @Put(':id')
   @Permissions('users.write')
   @UseGuards(PermissionsGuard)
-  @ApiOperation({ summary: 'Update a user' })
+  @ApiOperation({ summary: 'Update a user (PUT)' })
   @ApiResponse({ status: 200, description: 'User updated' })
   @ApiResponse({ status: 404, description: 'User not found' })
   update(
@@ -65,6 +66,28 @@ export class UsersController {
     @CurrentUser() user: JwtPayload,
   ) {
     return this.usersService.update(id, user.companyId, user.sub, dto);
+  }
+
+  @Patch(':id')
+  @Permissions('users.write')
+  @UseGuards(PermissionsGuard)
+  @ApiOperation({ summary: 'Update a user (PATCH)' })
+  @ApiResponse({ status: 200, description: 'User updated' })
+  @ApiResponse({ status: 404, description: 'User not found' })
+  patchUpdate(
+    @Param('id', ParseUUIDPipe) id: string,
+    @Body() dto: UpdateUserDto,
+    @CurrentUser() user: JwtPayload,
+  ) {
+    return this.usersService.update(id, user.companyId, user.sub, dto);
+  }
+
+  @Patch('profile')
+  @Roles('owner', 'admin', 'manager', 'sales', 'warehouse', 'viewer', 'user', 'employee')
+  @ApiOperation({ summary: 'Update current user profile' })
+  @ApiResponse({ status: 200, description: 'Profile updated' })
+  updateProfile(@Body() dto: UpdateUserDto, @CurrentUser() user: JwtPayload) {
+    return this.usersService.update(user.sub, user.companyId, user.sub, dto);
   }
 
   @Delete(':id')

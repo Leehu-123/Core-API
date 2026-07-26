@@ -26,4 +26,9 @@ export class UpdateCompanyDto {
   @IsOptional()
   @IsEmail()
   email?: string;
+
+  @ApiPropertyOptional({ example: '123456789:ABCdefGHIjklmNOPqrsTUVwxyz' })
+  @IsOptional()
+  @IsString()
+  telegramBotToken?: string;
 }

@@ -12,6 +12,31 @@ export class KpiRecordsController {
     return this.kpiRecordsService.create({ ...createDto, companyId: req.user.companyId });
   }
 
+  @Post('bulk')
+  bulkSave(@Body() body: any, @Request() req: any) {
+    return this.kpiRecordsService.bulkSave(body, req.user.companyId);
+  }
+
+  @Post('approve')
+  approve(@Body() body: any, @Request() req: any) {
+    return this.kpiRecordsService.approve(body, req.user.companyId);
+  }
+
+  @Post('delete-sheet')
+  deleteSheetPost(@Body() body: any, @Request() req: any) {
+    return this.kpiRecordsService.deleteSheet(body, req.user.companyId);
+  }
+
+  @Delete('sheet')
+  deleteSheet(@Body() body: any, @Request() req: any) {
+    return this.kpiRecordsService.deleteSheet(body, req.user.companyId);
+  }
+
+  @Get('pending')
+  findPendingSheets(@Request() req: any, @Query() query: any) {
+    return this.kpiRecordsService.findPendingSheets(req.user.companyId, query);
+  }
+
   @Get()
   findAll(@Request() req: any, @Query() query: any) {
     return this.kpiRecordsService.findAll(req.user.companyId, query);

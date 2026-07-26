@@ -69,4 +69,9 @@ export class UpdateUserDto {
   @IsArray()
   @IsString({ each: true })
   departmentIds?: string[];
+
+  @ApiPropertyOptional({ example: '123456789' })
+  @IsOptional()
+  @IsString()
+  telegramChatId?: string;
 }
