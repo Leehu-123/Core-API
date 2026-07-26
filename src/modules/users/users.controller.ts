@@ -2,6 +2,7 @@ import {
   Body,
   Controller,
   Delete,
+  ForbiddenException,
   Get,
   Param,
   ParseUUIDPipe,
@@ -21,12 +22,12 @@ import { CreateUserDto, UpdateUserDto, UserFilterDto } from './dto';
 @ApiTags('Users')
 @Controller('users')
 @ApiBearerAuth('access-token')
-@Roles('owner', 'admin')
 @UseGuards(RolesGuard)
 export class UsersController {
   constructor(private readonly usersService: UsersService) {}
 
   @Get()
+  @Roles('owner', 'admin', 'manager', 'accountant')
   @Permissions('users.read')
   @UseGuards(PermissionsGuard)
   @ApiOperation({ summary: 'List all users (paginated)' })
@@ -36,16 +37,24 @@ export class UsersController {
   }
 
   @Get(':id')
-  @Permissions('users.read')
-  @UseGuards(PermissionsGuard)
+  @Roles('owner', 'admin', 'manager', 'accountant', 'sales', 'warehouse', 'viewer', 'user', 'employee')
   @ApiOperation({ summary: 'Get user by ID' })
   @ApiResponse({ status: 200, description: 'User details' })
   @ApiResponse({ status: 404, description: 'User not found' })
   findOne(@Param('id', ParseUUIDPipe) id: string, @CurrentUser() user: JwtPayload) {
+    const isSelf = user.sub === id;
+    const userRole = (user.roles?.[0] || '').toString().toLowerCase();
+    const isPrivileged = ['owner', 'admin', 'administrator', 'manager', 'accountant'].includes(userRole);
+
+    if (!isSelf && !isPrivileged) {
+      throw new ForbiddenException('Bạn không có quyền xem thông tin người dùng này');
+    }
+
     return this.usersService.findOne(id, user.companyId);
   }
 
   @Post()
+  @Roles('owner', 'admin')
   @Permissions('users.write')
   @UseGuards(PermissionsGuard)
   @ApiOperation({ summary: 'Create a new user' })
@@ -55,6 +64,7 @@ export class UsersController {
   }
 
   @Put(':id')
+  @Roles('owner', 'admin')
   @Permissions('users.write')
   @UseGuards(PermissionsGuard)
   @ApiOperation({ summary: 'Update a user (PUT)' })
@@ -69,6 +79,7 @@ export class UsersController {
   }
 
   @Patch(':id')
+  @Roles('owner', 'admin')
   @Permissions('users.write')
   @UseGuards(PermissionsGuard)
   @ApiOperation({ summary: 'Update a user (PATCH)' })
@@ -83,7 +94,7 @@ export class UsersController {
   }
 
   @Patch('profile')
-  @Roles('owner', 'admin', 'manager', 'sales', 'warehouse', 'viewer', 'user', 'employee')
+  @Roles('owner', 'admin', 'manager', 'accountant', 'sales', 'warehouse', 'viewer', 'user', 'employee')
   @ApiOperation({ summary: 'Update current user profile' })
   @ApiResponse({ status: 200, description: 'Profile updated' })
   updateProfile(@Body() dto: UpdateUserDto, @CurrentUser() user: JwtPayload) {
@@ -91,6 +102,7 @@ export class UsersController {
   }
 
   @Delete(':id')
+  @Roles('owner', 'admin')
   @Permissions('users.write')
   @UseGuards(PermissionsGuard)
   @ApiOperation({ summary: 'Deactivate a user (soft delete)' })
