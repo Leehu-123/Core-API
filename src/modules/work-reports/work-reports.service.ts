@@ -16,8 +16,8 @@ export class WorkReportsService {
       where,
       include: {
         template: true,
-        submittedBy: { select: { id: true, fullName: true, avatarUrl: true } },
-        reviewedBy: { select: { id: true, fullName: true, avatarUrl: true } }
+        submittedBy: { select: { id: true, fullName: true, avatar: true } },
+        reviewedBy: { select: { id: true, fullName: true, avatar: true } }
       },
       orderBy: { createdAt: 'desc' }
     });
@@ -28,8 +28,8 @@ export class WorkReportsService {
       where: { id, template: { companyId } },
       include: {
         template: true,
-        submittedBy: { select: { id: true, fullName: true, avatarUrl: true } },
-        reviewedBy: { select: { id: true, fullName: true, avatarUrl: true } }
+        submittedBy: { select: { id: true, fullName: true, avatar: true } },
+        reviewedBy: { select: { id: true, fullName: true, avatar: true } }
       }
     });
     if (!item) throw new NotFoundException('Not found');

@@ -32,7 +32,7 @@ export class KpiRecordsService {
         criteria: {
           include: { department: { select: { id: true, name: true } } }
         },
-        user: { select: { id: true, fullName: true, avatarUrl: true } }
+        user: { select: { id: true, fullName: true, avatar: true } }
       },
       orderBy: { recordedAt: 'desc' }
     });

@@ -37,10 +37,10 @@ export class DafaTasksService {
         orderBy: { createdAt: 'desc' },
         include: {
           assignees: {
-            include: { user: { select: { id: true, fullName: true, email: true, avatarUrl: true } } }
+            include: { user: { select: { id: true, fullName: true, email: true, avatar: true } } }
           },
           department: { select: { id: true, name: true } },
-          createdBy: { select: { id: true, fullName: true, avatarUrl: true } }
+          createdBy: { select: { id: true, fullName: true, avatar: true } }
         }
       }),
       this.prisma.task.count({ where })
@@ -148,17 +148,17 @@ export class DafaTasksService {
       where: { id, companyId },
       include: {
         assignees: {
-          include: { user: { select: { id: true, fullName: true, avatarUrl: true } } }
+          include: { user: { select: { id: true, fullName: true, avatar: true } } }
         },
         department: { select: { id: true, name: true } },
-        createdBy: { select: { id: true, fullName: true, avatarUrl: true } },
+        createdBy: { select: { id: true, fullName: true, avatar: true } },
         attachments: true,
         comments: {
-          include: { author: { select: { id: true, fullName: true, avatarUrl: true } } },
+          include: { author: { select: { id: true, fullName: true, avatar: true } } },
           orderBy: { createdAt: 'desc' }
         },
         history: {
-          include: { changedBy: { select: { id: true, fullName: true, avatarUrl: true } } },
+          include: { changedBy: { select: { id: true, fullName: true, avatar: true } } },
           orderBy: { changedAt: 'desc' }
         }
       }
