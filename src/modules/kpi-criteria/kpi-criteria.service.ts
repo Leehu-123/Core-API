@@ -9,9 +9,30 @@ export class KpiCriteriaService {
     return this.prisma.kpiCriteria.create({ data });
   }
 
-  async findAll(companyId: string) {
+  async findAll(companyId: string, query?: any) {
+    const where: any = { companyId };
+    
+    if (query?.departmentId) {
+      where.departmentId = query.departmentId;
+    }
+    
+    // If a specific userId is provided, we might want to filter criteria based on their department
+    if (query?.userId && !query?.departmentId) {
+      const userDepts = await this.prisma.departmentMember.findMany({
+        where: { userId: query.userId },
+        select: { departmentId: true }
+      });
+      if (userDepts.length > 0) {
+        where.departmentId = { in: userDepts.map(d => d.departmentId) };
+      }
+    }
+
     return this.prisma.kpiCriteria.findMany({
-      where: { companyId },
+      where,
+      include: {
+        department: { select: { id: true, name: true } }
+      },
+      orderBy: { createdAt: 'desc' }
     });
   }
 

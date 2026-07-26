@@ -9,9 +9,32 @@ export class KpiRecordsService {
     return this.prisma.kpiRecord.create({ data });
   }
 
-  async findAll(companyId: string) {
+  async findAll(companyId: string, query?: any) {
+    const where: any = {};
+    
+    // Check if the user wants to filter by companyId (via user relation)
+    // KPI records belong to criteria and users, but we can verify company via user
+    where.user = { companyId };
+
+    if (query?.userId) {
+      where.userId = query.userId;
+    }
+    
+    if (query?.periodStart || query?.periodEnd) {
+      where.periodStart = {};
+      if (query?.periodStart) where.periodStart.gte = new Date(query.periodStart);
+      if (query?.periodEnd) where.periodStart.lte = new Date(query.periodEnd);
+    }
+
     return this.prisma.kpiRecord.findMany({
-      where: { companyId },
+      where,
+      include: {
+        criteria: {
+          include: { department: { select: { id: true, name: true } } }
+        },
+        user: { select: { id: true, fullName: true, avatarUrl: true } }
+      },
+      orderBy: { recordedAt: 'desc' }
     });
   }
 

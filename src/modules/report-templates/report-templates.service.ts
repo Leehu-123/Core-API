@@ -9,9 +9,11 @@ export class ReportTemplatesService {
     return this.prisma.reportTemplate.create({ data });
   }
 
-  async findAll(companyId: string) {
+  async findAll(companyId: string, query?: any) {
+    const where: any = { companyId };
     return this.prisma.reportTemplate.findMany({
-      where: { companyId },
+      where,
+      orderBy: { createdAt: 'desc' }
     });
   }
 

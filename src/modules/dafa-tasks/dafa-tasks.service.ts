@@ -9,10 +9,52 @@ export class DafaTasksService {
     return this.prisma.task.create({ data });
   }
 
-  async findAll(companyId: string) {
-    return this.prisma.task.findMany({
-      where: { companyId },
-    });
+  async findAll(companyId: string, query?: any) {
+    const page = parseInt(query?.page) || 1;
+    const limit = parseInt(query?.limit) || 10;
+    const skip = (page - 1) * limit;
+
+    const where: any = { companyId };
+    
+    if (query?.search) {
+      where.title = { contains: query.search, mode: 'insensitive' };
+    }
+    if (query?.status) {
+      where.status = query.status;
+    }
+    if (query?.priority) {
+      where.priority = query.priority;
+    }
+    if (query?.departmentId) {
+      where.departmentId = query.departmentId;
+    }
+
+    const [items, total] = await Promise.all([
+      this.prisma.task.findMany({
+        where,
+        skip,
+        take: limit,
+        orderBy: { createdAt: 'desc' },
+        include: {
+          assignees: {
+            include: { user: { select: { id: true, fullName: true, email: true, avatarUrl: true } } }
+          },
+          department: { select: { id: true, name: true } },
+          createdBy: { select: { id: true, fullName: true, avatarUrl: true } }
+        }
+      }),
+      this.prisma.task.count({ where })
+    ]);
+
+    return {
+      data: items,
+      pagination: {
+        total,
+        page,
+        limit,
+        totalPages: Math.ceil(total / limit)
+      }
+    };
   }
 
   async getDashboardStats(companyId: string, userId: string, role: string) {
@@ -104,6 +146,22 @@ export class DafaTasksService {
   async findOne(id: string, companyId: string) {
     const item = await this.prisma.task.findFirst({
       where: { id, companyId },
+      include: {
+        assignees: {
+          include: { user: { select: { id: true, fullName: true, avatarUrl: true } } }
+        },
+        department: { select: { id: true, name: true } },
+        createdBy: { select: { id: true, fullName: true, avatarUrl: true } },
+        attachments: true,
+        comments: {
+          include: { author: { select: { id: true, fullName: true, avatarUrl: true } } },
+          orderBy: { createdAt: 'desc' }
+        },
+        history: {
+          include: { changedBy: { select: { id: true, fullName: true, avatarUrl: true } } },
+          orderBy: { changedAt: 'desc' }
+        }
+      }
     });
     if (!item) throw new NotFoundException('Not found');
     return item;

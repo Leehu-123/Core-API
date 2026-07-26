@@ -1,4 +1,4 @@
-import { Controller, Get, Post, Body, Patch, Param, Delete, Request } from '@nestjs/common';
+import { Controller, Get, Post, Body, Patch, Param, Delete, Request, Query } from '@nestjs/common';
 import { ReportTemplatesService } from './report-templates.service';
 import { ApiTags } from '@nestjs/swagger';
 
@@ -13,8 +13,8 @@ export class ReportTemplatesController {
   }
 
   @Get()
-  findAll(@Request() req: any) {
-    return this.reportTemplatesService.findAll(req.user.companyId);
+  findAll(@Request() req: any, @Query() query: any) {
+    return this.reportTemplatesService.findAll(req.user.companyId, query);
   }
 
   @Get(':id')

@@ -1,4 +1,4 @@
-import { Controller, Get, Post, Body, Patch, Param, Delete, Request } from '@nestjs/common';
+import { Controller, Get, Post, Body, Patch, Param, Delete, Request, Query } from '@nestjs/common';
 import { KpiRecordsService } from './kpi-records.service';
 import { ApiTags } from '@nestjs/swagger';
 
@@ -13,8 +13,8 @@ export class KpiRecordsController {
   }
 
   @Get()
-  findAll(@Request() req: any) {
-    return this.kpiRecordsService.findAll(req.user.companyId);
+  findAll(@Request() req: any, @Query() query: any) {
+    return this.kpiRecordsService.findAll(req.user.companyId, query);
   }
 
   @Get(':id')
