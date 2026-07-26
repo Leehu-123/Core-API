@@ -1,4 +1,4 @@
-import { Controller, Get, Post, Body, Patch, Param, Delete, Request, Query } from '@nestjs/common';
+import { Controller, Get, Post, Body, Patch, Param, Delete, Request, Query, ForbiddenException } from '@nestjs/common';
 import { KpiRecordsService } from './kpi-records.service';
 import { ApiTags } from '@nestjs/swagger';
 
@@ -19,6 +19,10 @@ export class KpiRecordsController {
 
   @Post('approve')
   approve(@Body() body: any, @Request() req: any) {
+    const role = (req.user.role || (Array.isArray(req.user.roles) ? req.user.roles[0] : req.user.roles) || '').toString().toUpperCase();
+    if (role !== 'ADMIN' && role !== 'OWNER') {
+      throw new ForbiddenException('Chỉ tài khoản quản trị mới có quyền phê duyệt phiếu KPI');
+    }
     return this.kpiRecordsService.approve(body, req.user.companyId);
   }
 

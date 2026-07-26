@@ -36,6 +36,14 @@ export class UsersController {
     return this.usersService.findAll(user.companyId, query);
   }
 
+  @Patch('profile')
+  @Roles('owner', 'admin', 'manager', 'accountant', 'sales', 'warehouse', 'viewer', 'user', 'employee')
+  @ApiOperation({ summary: 'Update current user profile' })
+  @ApiResponse({ status: 200, description: 'Profile updated' })
+  updateProfile(@Body() dto: UpdateUserDto, @CurrentUser() user: JwtPayload) {
+    return this.usersService.update(user.sub, user.companyId, user.sub, dto);
+  }
+
   @Get(':id')
   @Roles('owner', 'admin', 'manager', 'accountant', 'sales', 'warehouse', 'viewer', 'user', 'employee')
   @ApiOperation({ summary: 'Get user by ID' })
@@ -91,14 +99,6 @@ export class UsersController {
     @CurrentUser() user: JwtPayload,
   ) {
     return this.usersService.update(id, user.companyId, user.sub, dto);
-  }
-
-  @Patch('profile')
-  @Roles('owner', 'admin', 'manager', 'accountant', 'sales', 'warehouse', 'viewer', 'user', 'employee')
-  @ApiOperation({ summary: 'Update current user profile' })
-  @ApiResponse({ status: 200, description: 'Profile updated' })
-  updateProfile(@Body() dto: UpdateUserDto, @CurrentUser() user: JwtPayload) {
-    return this.usersService.update(user.sub, user.companyId, user.sub, dto);
   }
 
   @Delete(':id')
