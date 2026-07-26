@@ -13,17 +13,21 @@ export class KpiCriteriaService {
     const where: any = { companyId };
     
     if (query?.departmentId) {
-      where.departmentId = query.departmentId;
-    }
-    
-    // If a specific userId is provided, we might want to filter criteria based on their department
-    if (query?.userId && !query?.departmentId) {
+      where.OR = [
+        { departmentId: query.departmentId },
+        { departmentId: null }
+      ];
+    } else if (query?.userId) {
       const userDepts = await this.prisma.departmentMember.findMany({
         where: { userId: query.userId },
         select: { departmentId: true }
       });
       if (userDepts.length > 0) {
-        where.departmentId = { in: userDepts.map(d => d.departmentId) };
+        const deptIds = userDepts.map(d => d.departmentId);
+        where.OR = [
+          { departmentId: { in: deptIds } },
+          { departmentId: null }
+        ];
       }
     }
 

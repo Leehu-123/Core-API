@@ -18,7 +18,7 @@ export class DafaTasksController {
 
   @Get()
   findAll(@Request() req: any, @Query() query: any) {
-    return this.dafaTasksService.findAll(req.user.companyId, query);
+    return this.dafaTasksService.findAll(req.user.companyId, req.user.id, req.user.role, query);
   }
 
   @Get('dashboard-stats')

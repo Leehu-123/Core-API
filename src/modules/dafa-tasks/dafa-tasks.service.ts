@@ -67,25 +67,63 @@ export class DafaTasksService {
     return newTask;
   }
 
-  async findAll(companyId: string, query?: any) {
+  async findAll(companyId: string, userId: string, role: string, query?: any) {
+    const normRole = Array.isArray(role)
+      ? (role[0] || '').toString().toUpperCase()
+      : (role || '').toString().toUpperCase();
+
     const page = parseInt(query?.page) || 1;
     const limit = parseInt(query?.limit) || 10;
     const skip = (page - 1) * limit;
 
     const where: any = { companyId };
 
+    if (normRole === 'ADMIN' || normRole === 'OWNER') {
+      // Admin sees all tasks
+    } else if (normRole === 'MANAGER') {
+      const managerDepts = await this.prisma.departmentMember.findMany({
+        where: { userId },
+        select: { departmentId: true }
+      });
+      const deptIds = managerDepts.map(d => d.departmentId);
+      where.OR = [
+        { departmentId: { in: deptIds } },
+        { assignees: { some: { userId } } },
+        { followers: { some: { userId } } },
+        { createdById: userId },
+        { reportToId: userId }
+      ];
+    } else {
+      // Non-admin (EMPLOYEE, ACCOUNTANT, SALES, etc.) ONLY sees assigned, followed, created, or reportTo
+      where.OR = [
+        { assignees: { some: { userId } } },
+        { followers: { some: { userId } } },
+        { createdById: userId },
+        { reportToId: userId }
+      ];
+    }
+
     if (query?.search) {
       where.title = { contains: query.search, mode: 'insensitive' };
     }
     if (query?.status) {
       if (query.status === 'OVERDUE') {
-        where.OR = [
+        const overdueCond = [
           { status: 'OVERDUE' },
           {
             deadline: { lt: new Date() },
             status: { notIn: ['DONE'] },
           },
         ];
+        if (where.OR) {
+          where.AND = [
+            { OR: where.OR },
+            { OR: overdueCond }
+          ];
+          delete where.OR;
+        } else {
+          where.OR = overdueCond;
+        }
       } else {
         where.status = query.status;
       }
