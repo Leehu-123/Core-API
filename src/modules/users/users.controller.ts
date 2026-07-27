@@ -37,7 +37,6 @@ export class UsersController {
   }
 
   @Patch('profile')
-  @Roles('owner', 'admin', 'manager', 'accountant', 'sales', 'warehouse', 'viewer', 'user', 'employee')
   @ApiOperation({ summary: 'Update current user profile' })
   @ApiResponse({ status: 200, description: 'Profile updated' })
   updateProfile(@Body() dto: UpdateUserDto, @CurrentUser() user: JwtPayload) {
@@ -45,7 +44,6 @@ export class UsersController {
   }
 
   @Get(':id')
-  @Roles('owner', 'admin', 'manager', 'accountant', 'sales', 'warehouse', 'viewer', 'user', 'employee')
   @ApiOperation({ summary: 'Get user by ID' })
   @ApiResponse({ status: 200, description: 'User details' })
   @ApiResponse({ status: 404, description: 'User not found' })
