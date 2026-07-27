@@ -27,9 +27,6 @@ export class UsersController {
   constructor(private readonly usersService: UsersService) {}
 
   @Get()
-  @Roles('owner', 'admin', 'manager', 'accountant')
-  @Permissions('users.read')
-  @UseGuards(PermissionsGuard)
   @ApiOperation({ summary: 'List all users (paginated)' })
   @ApiResponse({ status: 200, description: 'Paginated list of users' })
   findAll(@Query() query: UserFilterDto, @CurrentUser() user: JwtPayload) {
