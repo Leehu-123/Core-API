@@ -184,7 +184,12 @@ export class UsersService {
       updatedById: userId,
     };
 
-    if (dto.email !== undefined) updateData.email = dto.email;
+    if (dto.email !== undefined) {
+      updateData.email = dto.email;
+      if (dto.username === undefined) {
+        updateData.username = dto.email; // Sync username to the new email to prevent old emails from working
+      }
+    }
     if (dto.username !== undefined) updateData.username = dto.username;
     if (dto.fullName !== undefined) updateData.fullName = dto.fullName;
     if (dto.phone !== undefined) updateData.phone = dto.phone;
