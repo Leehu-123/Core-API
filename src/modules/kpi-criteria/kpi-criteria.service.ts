@@ -13,10 +13,7 @@ export class KpiCriteriaService {
     const where: any = { companyId };
     
     if (query?.departmentId) {
-      where.OR = [
-        { departmentId: query.departmentId },
-        { departmentId: null }
-      ];
+      where.departmentId = query.departmentId;
     } else if (query?.userId) {
       const userDepts = await this.prisma.departmentMember.findMany({
         where: { userId: query.userId },
@@ -24,10 +21,7 @@ export class KpiCriteriaService {
       });
       if (userDepts.length > 0) {
         const deptIds = userDepts.map(d => d.departmentId);
-        where.OR = [
-          { departmentId: { in: deptIds } },
-          { departmentId: null }
-        ];
+        where.departmentId = { in: deptIds };
       }
     }
 
