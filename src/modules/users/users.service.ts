@@ -138,18 +138,21 @@ export class UsersService {
 
     // Assign roles if provided
     if (dto.roleNames && dto.roleNames.length > 0) {
-      const roles = await this.prisma.role.findMany({
-        where: {
-          name: { in: dto.roleNames },
-          companyId,
-        },
-      });
+      const roleIds = [];
+      for (const roleName of dto.roleNames) {
+        const role = await this.prisma.role.upsert({
+          where: { companyId_name: { companyId, name: roleName } },
+          update: {},
+          create: { companyId, name: roleName, description: roleName.toUpperCase(), isSystem: false },
+        });
+        roleIds.push(role.id);
+      }
 
-      if (roles.length > 0) {
+      if (roleIds.length > 0) {
         await this.prisma.userRole.createMany({
-          data: roles.map((role) => ({
+          data: roleIds.map((id) => ({
             userId: user.id,
-            roleId: role.id,
+            roleId: id,
           })),
         });
       }
@@ -243,18 +246,21 @@ export class UsersService {
 
       // Create new role assignments
       if (dto.roleNames.length > 0) {
-        const roles = await this.prisma.role.findMany({
-          where: {
-            name: { in: dto.roleNames },
-            companyId,
-          },
-        });
+        const roleIds = [];
+        for (const roleName of dto.roleNames) {
+          const role = await this.prisma.role.upsert({
+            where: { companyId_name: { companyId, name: roleName } },
+            update: {},
+            create: { companyId, name: roleName, description: roleName.toUpperCase(), isSystem: false },
+          });
+          roleIds.push(role.id);
+        }
 
-        if (roles.length > 0) {
+        if (roleIds.length > 0) {
           await this.prisma.userRole.createMany({
-            data: roles.map((role) => ({
+            data: roleIds.map((rId) => ({
               userId: id,
-              roleId: role.id,
+              roleId: rId,
             })),
             skipDuplicates: true,
           });
