@@ -48,7 +48,6 @@ model User {
   updatedById  String?   @map("updated_by_id") @db.Uuid
   teamId       String?   @map("team_id") @db.Uuid
   avatar       String?
-  telegramChatId String?  @map("telegram_chat_id")
 
   // DAFA Manager fields
   telegramChatId  String?    @map("telegram_chat_id")

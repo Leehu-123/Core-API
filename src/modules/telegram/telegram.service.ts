@@ -12,13 +12,14 @@ export class TelegramService {
     this.warehouseAppUrl = process.env.WAREHOUSE_APP_URL || 'https://warehouse.ldhuy.name.vn';
   }
 
-  async sendMessage(chatId: string, text: string): Promise<boolean> {
-    if (!this.botToken) {
+  async sendMessage(chatId: string, text: string, customToken?: string): Promise<boolean> {
+    const token = customToken || this.botToken;
+    if (!token) {
       this.logger.warn('TELEGRAM_BOT_TOKEN is not configured');
       return false;
     }
     try {
-      const url = `https://api.telegram.org/bot${this.botToken}/sendMessage`;
+      const url = `https://api.telegram.org/bot${token}/sendMessage`;
       const response = await fetch(url, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
@@ -43,6 +44,9 @@ export class TelegramService {
 
   async notifyAdmins(companyId: string, message: string): Promise<void> {
     try {
+      const company = await this.prisma.company.findUnique({ where: { id: companyId } });
+      const customToken = company?.telegramBotToken || undefined;
+
       const adminUsers = await this.prisma.user.findMany({
         where: {
           companyId,
@@ -60,7 +64,7 @@ export class TelegramService {
       });
       const sendPromises = adminUsers
         .filter((u) => u.telegramChatId)
-        .map((u) => this.sendMessage(u.telegramChatId!, message));
+        .map((u) => this.sendMessage(u.telegramChatId!, message, customToken));
       await Promise.allSettled(sendPromises);
     } catch (error: any) {
       this.logger.warn(`Error notifying admins: ${error.message}`);
@@ -69,9 +73,13 @@ export class TelegramService {
 
   async notifyUser(userId: string, message: string): Promise<void> {
     try {
-      const user = await this.prisma.user.findUnique({ where: { id: userId } });
+      const user = await this.prisma.user.findUnique({ 
+        where: { id: userId },
+        include: { company: true }
+      });
       if (user?.telegramChatId) {
-        await this.sendMessage(user.telegramChatId, message);
+        const customToken = user.company?.telegramBotToken || undefined;
+        await this.sendMessage(user.telegramChatId, message, customToken);
       }
     } catch (error: any) {
       this.logger.warn(`Error notifying user ${userId}: ${error.message}`);
