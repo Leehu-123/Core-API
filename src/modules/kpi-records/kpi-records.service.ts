@@ -177,7 +177,13 @@ export class KpiRecordsService {
         this.prisma.user.findMany({
           where: {
             companyId,
-            role: { in: ['ADMIN', 'MANAGER'] },
+            userRoles: {
+              some: {
+                role: {
+                  name: { in: ['admin', 'owner', 'ADMIN', 'MANAGER'] },
+                },
+              },
+            },
             telegramChatId: { not: null },
             deletedAt: null,
           },
