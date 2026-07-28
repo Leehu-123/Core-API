@@ -2,6 +2,7 @@ version: '3.8'
 services:
   core_api:
     container_name: core_api_app
+    build: .
     image: ghcr.io/leehu-123/core-api:latest
     restart: always
     environment:
