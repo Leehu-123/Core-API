@@ -42,14 +42,20 @@ export class UsersController {
   }
 
   @Patch('me/profile')
-  async updateMyProfile(@Req() req: any, @Body() body: { telegramChatId?: string; phone?: string; fullName?: string }) {
-    const data = await this.usersService.updateMyProfile(req.user.id, body);
+  async updateMyProfile(@CurrentUser() user: JwtPayload, @Body() body: { telegramChatId?: string; phone?: string; fullName?: string }) {
+    const data = await this.usersService.updateMyProfile(user.sub, body);
     return { success: true, data };
   }
 
   @Get('me/profile')
-  async getMyProfile(@Req() req: any) {
-    const data = await this.usersService.findOne(req.user.id, req.user.companyId);
+  async getMyProfile(@CurrentUser() user: JwtPayload) {
+    const data = await this.usersService.findOne(user.sub, user.companyId);
+    return { success: true, data };
+  }
+
+  @Get('profile')
+  async getProfile(@CurrentUser() user: JwtPayload) {
+    const data = await this.usersService.findOne(user.sub, user.companyId);
     return { success: true, data };
   }
 
