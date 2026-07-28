@@ -106,4 +106,19 @@ export class CreateCustomerDto {
   @Transform(({ value }) => (value === '' ? undefined : value))
   @IsString()
   assignedToId?: string;
+
+  @ApiPropertyOptional({ example: 'Mô tả thói quen mua hàng, người ra quyết định...' })
+  @IsOptional()
+  @IsString()
+  description?: string;
+
+  @ApiPropertyOptional({ example: 16.0471 })
+  @IsOptional()
+  @IsNumber()
+  latitude?: number;
+
+  @ApiPropertyOptional({ example: 108.2068 })
+  @IsOptional()
+  @IsNumber()
+  longitude?: number;
 }

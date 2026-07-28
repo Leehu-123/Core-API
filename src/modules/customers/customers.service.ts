@@ -150,6 +150,9 @@ export class CustomersService {
       estimatedBudget: source.estimatedBudget,
       nextFollowUpDate: source.nextFollowUpDate ? new Date(source.nextFollowUpDate) : undefined,
       assignedToId: source.assignedToId || null,
+      description: source.description,
+      latitude: source.latitude,
+      longitude: source.longitude,
     };
 
     Object.keys(data).forEach((key) => data[key] === undefined && delete data[key]);

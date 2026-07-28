@@ -269,6 +269,9 @@ model Customer {
   estimatedArea   Float?     @map("estimated_area")
   estimatedBudget Float?     @map("estimated_budget")
   nextFollowUpDate DateTime? @map("next_follow_up_date")
+  description     String?
+  latitude        Float?
+  longitude       Float?
 
   company   Company @relation(fields: [companyId], references: [id])
   createdBy User?   @relation("CustomerCreatedBy", fields: [createdById], references: [id])
