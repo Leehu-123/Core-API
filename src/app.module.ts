@@ -7,6 +7,7 @@ import { configuration, validationSchema } from './config';
 import { ServeStaticModule } from '@nestjs/serve-static';
 import { join } from 'path';
 import { PrismaModule } from './prisma/prisma.module';
+import { TelegramModule } from './modules/telegram/telegram.module';
 import { JwtAuthGuard } from './common/guards';
 import { AuditLogService } from './common/services';
 // Auth & System
@@ -77,6 +78,7 @@ import { ReportTemplatesModule } from './modules/report-templates/report-templat
     PermissionsModule,
     AuditLogsModule,
     NotificationsModule,
+    TelegramModule,
     // Stock Manager
     ProductsModule,
     CustomersModule,

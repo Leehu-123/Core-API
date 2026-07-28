@@ -2,6 +2,7 @@ import { Injectable, NotFoundException, BadRequestException } from '@nestjs/comm
 import { PrismaService } from '../../prisma/prisma.service';
 import { AuditLogService } from '../../common/services';
 import { StockMovementsService } from '../stock-movements/stock-movements.service';
+import { TelegramService } from '../telegram/telegram.service';
 import { PaginationMeta } from '../../common/dto/api-response.dto';
 import { CreateGoodsIssueDto, UpdateGoodsIssueDto, QueryGoodsIssueDto } from './dto';
 import { randomBytes } from 'crypto';
@@ -12,6 +13,7 @@ export class GoodsIssuesService {
     private readonly prisma: PrismaService,
     private readonly auditLogService: AuditLogService,
     private readonly stockMovementsService: StockMovementsService,
+    private readonly telegramService: TelegramService,
   ) {}
 
   async findAll(companyId: string, query: QueryGoodsIssueDto) {
@@ -220,6 +222,14 @@ export class GoodsIssuesService {
     });
 
     await this.auditLogService.log({ companyId, userId, action: 'SUBMITTED', entity: 'GoodsIssue', entityId: id });
+
+    // Telegram: notify admins
+    const creator = await this.prisma.user.findUnique({ where: { id: userId } });
+    const link = this.telegramService.getIssueLink(id);
+    this.telegramService.notifyAdmins(companyId,
+      `📦 *Phiếu xuất kho cần phê duyệt*\nMã phiếu: \`${issue.code}\`\nNgười tạo: ${creator?.fullName || 'N/A'}\n🔗 [Xem phiếu](${link})`
+    ).catch(() => {});
+
     return issue;
   }
 
@@ -234,6 +244,13 @@ export class GoodsIssuesService {
     });
 
     await this.auditLogService.log({ companyId, userId, action: 'APPROVED', entity: 'GoodsIssue', entityId: id });
+
+    // Telegram: notify creator
+    const approver = await this.prisma.user.findUnique({ where: { id: userId } });
+    this.telegramService.notifyUser(existing.createdById,
+      `✅ *Phiếu xuất kho đã được phê duyệt*\nMã phiếu: \`${issue.code}\`\nPhê duyệt bởi: ${approver?.fullName || 'N/A'}`
+    ).catch(() => {});
+
     return issue;
   }
 

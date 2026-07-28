@@ -70,7 +70,7 @@ export class UpdateUserDto {
   @IsString({ each: true })
   departmentIds?: string[];
 
-  @ApiPropertyOptional({ example: '123456789' })
+  @ApiPropertyOptional({ example: '123456789', description: 'Telegram Chat ID for notifications' })
   @IsOptional()
   @IsString()
   telegramChatId?: string;

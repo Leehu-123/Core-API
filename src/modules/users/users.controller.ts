@@ -11,6 +11,7 @@ import {
   Post,
   Query,
   UseGuards,
+  Req,
 } from '@nestjs/common';
 import { ApiBearerAuth, ApiOperation, ApiResponse, ApiTags } from '@nestjs/swagger';
 import { CurrentUser, JwtPayload, Permissions, Roles } from '../../common/decorators';
@@ -38,6 +39,18 @@ export class UsersController {
   @ApiResponse({ status: 200, description: 'Profile updated' })
   updateProfile(@Body() dto: UpdateUserDto, @CurrentUser() user: JwtPayload) {
     return this.usersService.update(user.sub, user.companyId, user.sub, dto);
+  }
+
+  @Patch('me/profile')
+  async updateMyProfile(@Req() req: any, @Body() body: { telegramChatId?: string; phone?: string; fullName?: string }) {
+    const data = await this.usersService.updateMyProfile(req.user.id, body);
+    return { success: true, data };
+  }
+
+  @Get('me/profile')
+  async getMyProfile(@Req() req: any) {
+    const data = await this.usersService.findOne(req.user.id, req.user.companyId);
+    return { success: true, data };
   }
 
   @Get(':id')

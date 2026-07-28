@@ -294,6 +294,23 @@ export class UsersService {
     return this.excludePassword(updatedUser);
   }
 
+  async updateMyProfile(userId: string, dto: { telegramChatId?: string; phone?: string; fullName?: string }) {
+    const user = await this.prisma.user.findUnique({ where: { id: userId } });
+    if (!user) throw new NotFoundException('User not found');
+
+    const updateData: any = {};
+    if (dto.telegramChatId !== undefined) updateData.telegramChatId = dto.telegramChatId;
+    if (dto.phone !== undefined) updateData.phone = dto.phone;
+    if (dto.fullName !== undefined) updateData.fullName = dto.fullName;
+
+    const updated = await this.prisma.user.update({
+      where: { id: userId },
+      data: updateData,
+    });
+
+    return this.excludePassword(updated);
+  }
+
   async remove(id: string, companyId: string, userId: string) {
     const user = await this.prisma.user.findFirst({
       where: { id, companyId, deletedAt: null },

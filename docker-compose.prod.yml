@@ -8,6 +8,8 @@ services:
       - DATABASE_URL=postgresql://admin:secretpassword@postgres_db:5432/warehouse_db?schema=public
       - NODE_ENV=production
       - JWT_SECRET=dafa-warehouse-secret-key-2024
+      - TELEGRAM_BOT_TOKEN=8878436482:AAFKlyhW8qDq7YGtULZO9LkiPZLEzMf8IGU
+      - WAREHOUSE_APP_URL=https://warehouse.ldhuy.name.vn
     ports:
       - "4000:3003"
     volumes:

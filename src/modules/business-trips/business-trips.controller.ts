@@ -122,4 +122,14 @@ export class BusinessTripsController {
   hardRemove(@Param('id', ParseUUIDPipe) id: string, @CurrentUser() user: JwtPayload) {
     return this.businessTripsService.hardRemove(id, user.companyId, user.sub);
   }
+
+  @Delete(':id')
+  @Permissions('business_trips.write')
+  @UseGuards(PermissionsGuard)
+  @ApiOperation({ summary: 'Delete a business trip and its daily reports' })
+  @ApiResponse({ status: 200, description: 'Business trip deleted' })
+  @ApiResponse({ status: 404, description: 'Business trip not found' })
+  remove(@Param('id', ParseUUIDPipe) id: string, @CurrentUser() user: JwtPayload) {
+    return this.businessTripsService.hardRemove(id, user.companyId, user.sub);
+  }
 }

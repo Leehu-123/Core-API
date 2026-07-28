@@ -2,6 +2,7 @@ import { Injectable, NotFoundException, BadRequestException } from '@nestjs/comm
 import { PrismaService } from '../../prisma/prisma.service';
 import { AuditLogService } from '../../common/services';
 import { StockMovementsService } from '../stock-movements/stock-movements.service';
+import { TelegramService } from '../telegram/telegram.service';
 import { PaginationMeta } from '../../common/dto/api-response.dto';
 import { CreateGoodsReceiptDto, UpdateGoodsReceiptDto, QueryGoodsReceiptDto } from './dto';
 import { Prisma } from '@prisma/client';
@@ -13,6 +14,7 @@ export class GoodsReceiptsService {
     private readonly prisma: PrismaService,
     private readonly auditLogService: AuditLogService,
     private readonly stockMovementsService: StockMovementsService,
+    private readonly telegramService: TelegramService,
   ) {}
 
   async findAll(companyId: string, query: QueryGoodsReceiptDto) {
@@ -213,6 +215,14 @@ export class GoodsReceiptsService {
     });
 
     await this.auditLogService.log({ companyId, userId, action: 'SUBMITTED', entity: 'GoodsReceipt', entityId: id });
+
+    // Telegram: notify admins
+    const creator = await this.prisma.user.findUnique({ where: { id: userId } });
+    const link = this.telegramService.getReceiptLink(id);
+    this.telegramService.notifyAdmins(companyId,
+      `📋 *Phiếu nhập kho cần phê duyệt*\nMã phiếu: \`${receipt.code}\`\nNgười tạo: ${creator?.fullName || 'N/A'}\n🔗 [Xem phiếu](${link})`
+    ).catch(() => {});
+
     return receipt;
   }
 
@@ -227,6 +237,13 @@ export class GoodsReceiptsService {
     });
 
     await this.auditLogService.log({ companyId, userId, action: 'APPROVED', entity: 'GoodsReceipt', entityId: id });
+
+    // Telegram: notify creator
+    const approver = await this.prisma.user.findUnique({ where: { id: userId } });
+    this.telegramService.notifyUser(existing.createdById,
+      `✅ *Phiếu nhập kho đã được phê duyệt*\nMã phiếu: \`${receipt.code}\`\nPhê duyệt bởi: ${approver?.fullName || 'N/A'}`
+    ).catch(() => {});
+
     return receipt;
   }
 
