@@ -10,7 +10,7 @@ async function bootstrap() {
 
   console.log('Finding admin user...');
   const admin = await prisma.user.findFirst({
-    where: { role: 'ADMIN', telegramChatId: { not: null } },
+    where: { telegramChatId: { not: null } },
   });
 
   if (!admin) {

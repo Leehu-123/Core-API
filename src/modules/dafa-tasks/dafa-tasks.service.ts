@@ -510,7 +510,7 @@ export class DafaTasksService {
         existing.updates.push(actionSnippet);
         // Merge target users to ensure all get notified
         targetUsers.forEach((u) => {
-          if (!existing.targetUsers.find((tu) => tu.id === u.id)) {
+          if (!existing.targetUsers.find((tu: any) => tu.id === u.id)) {
             existing.targetUsers.push(u);
           }
         });
@@ -544,7 +544,7 @@ export class DafaTasksService {
       this.notificationQueue.delete(queueKey);
 
       let message = `✏️ <b>CẬP NHẬT CÔNG VIỆC</b>\n\n📌 <b>Công việc:</b> ${data.taskTitle}\nℹ️ <b>Chi tiết các cập nhật mới:</b>\n`;
-      data.updates.forEach((u) => {
+      data.updates.forEach((u: string) => {
         message += `${u}\n`;
       });
       message += `\n👉 Vui lòng truy cập DAFA Manager để xem chi tiết!`;

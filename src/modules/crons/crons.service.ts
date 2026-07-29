@@ -48,7 +48,6 @@ export class CronsService {
             where: {
               companyId: company.id,
               status: { not: 'DONE' },
-              deletedAt: null,
               assignees: {
                 some: { userId: user.id },
               },
@@ -58,9 +57,9 @@ export class CronsService {
 
           if (tasks.length === 0) continue;
 
-          let overdueTasks = [];
-          let todayTasks = [];
-          let inProgressTasks = [];
+          const overdueTasks: typeof tasks = [];
+          const todayTasks: typeof tasks = [];
+          const inProgressTasks: typeof tasks = [];
 
           const now = new Date();
           const todayStart = new Date(now.getFullYear(), now.getMonth(), now.getDate());
