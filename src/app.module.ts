@@ -52,6 +52,7 @@ import { KpiCriteriaModule } from './modules/kpi-criteria/kpi-criteria.module';
 import { KpiRecordsModule } from './modules/kpi-records/kpi-records.module';
 import { WorkReportsModule } from './modules/work-reports/work-reports.module';
 import { ReportTemplatesModule } from './modules/report-templates/report-templates.module';
+import { CronsModule } from './modules/crons/crons.module';
 
 @Module({
   imports: [
@@ -112,6 +113,7 @@ import { ReportTemplatesModule } from './modules/report-templates/report-templat
     KpiRecordsModule,
     WorkReportsModule,
     ReportTemplatesModule,
+    CronsModule,
   ],
   providers: [
     {

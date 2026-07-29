@@ -1,8 +1,19 @@
 import { Injectable, NotFoundException } from '@nestjs/common';
 import { PrismaService } from '../../prisma/prisma.service';
 
+const STATUS_VI_MAP: Record<string, string> = {
+  TODO: 'Chưa bắt đầu',
+  IN_PROGRESS: 'Đang thực hiện',
+  REVIEW: 'Chờ duyệt',
+  DONE: 'Hoàn thành',
+  OVERDUE: 'Trễ hạn',
+  CANCELLED: 'Đã hủy',
+};
+
 @Injectable()
 export class DafaTasksService {
+  private notificationQueue = new Map<string, any>();
+  
   constructor(private prisma: PrismaService) {}
 
   async create(data: any) {
@@ -360,7 +371,7 @@ export class DafaTasksService {
       actorUserId,
       type: 'TASK_UPDATED',
       task: updatedTask,
-      extraInfo: data.status ? `Chuyển trạng thái sang: ${data.status}` : 'Cập nhật thông tin',
+      extraInfo: data.status ? `Chuyển trạng thái sang: ${STATUS_VI_MAP[data.status] || data.status}` : 'Cập nhật thông tin',
     });
 
     return updatedTask;
@@ -467,26 +478,6 @@ export class DafaTasksService {
         select: { id: true, fullName: true, telegramChatId: true },
       });
 
-      const priorityMap: Record<string, string> = {
-        LOW: 'Thấp',
-        MEDIUM: 'Trung bình',
-        HIGH: 'Cao',
-        URGENT: 'Khẩn cấp',
-      };
-
-      const statusMap: Record<string, string> = {
-        TODO: 'Chưa bắt đầu',
-        IN_PROGRESS: 'Đang thực hiện',
-        REVIEW: 'Chờ duyệt',
-        DONE: 'Hoàn thành',
-        OVERDUE: 'Trễ hạn',
-        CANCELLED: 'Đã hủy',
-      };
-
-      const deadlineStr = task.deadline
-        ? new Date(task.deadline).toLocaleDateString('vi-VN')
-        : 'Không có';
-
       let performer = actorName;
       if (!performer && actorUserId) {
         const actor = await this.prisma.user.findUnique({
@@ -499,22 +490,68 @@ export class DafaTasksService {
         performer = fullTask.createdBy?.fullName || 'Hệ thống';
       }
 
-      let message = '';
-
+      // Generate action snippet
+      let actionSnippet = '';
       if (type === 'TASK_CREATED') {
-        message = `🔔 <b>CÔNG VIỆC MỚI ĐƯỢC GIAO / NẮM THÔNG TIN</b>\n\n📌 <b>Công việc:</b> ${task.title}\n👤 <b>Người tạo:</b> ${performer}\n📝 <b>Mô tả:</b> ${task.description || 'Không có'}\n⚠️ <b>Độ ưu tiên:</b> ${priorityMap[task.priority] || task.priority}\n📅 <b>Hạn chót:</b> ${deadlineStr}\n\n👉 Vui lòng truy cập DAFA Manager để kiểm tra!`;
+        actionSnippet = `- Khởi tạo công việc (bởi ${performer})`;
       } else if (type === 'COMMENT_ADDED') {
-        message = `💬 <b>BÌNH LUẬN MỚI TRONG CÔNG VIỆC</b>\n\n📌 <b>Công việc:</b> ${task.title}\n👤 <b>Người bình luận:</b> ${performer}\n💬 <b>Nội dung:</b> "${extraInfo}"\n\n👉 Vui lòng truy cập DAFA Manager để phản hồi!`;
+        actionSnippet = `- Bình luận từ ${performer}: "${extraInfo}"`;
       } else if (type === 'ATTACHMENT_ADDED') {
-        message = `📎 <b>FILE ĐÍNH KÈM MỚI</b>\n\n📌 <b>Công việc:</b> ${task.title}\n👤 <b>Người tải lên:</b> ${performer}\n📁 <b>Tên file:</b> ${extraInfo}\n\n👉 Vui lòng truy cập DAFA Manager để xem file!`;
+        actionSnippet = `- Đính kèm file mới: ${extraInfo} (bởi ${performer})`;
       } else if (type === 'TASK_UPDATED') {
-        const newStatus = statusMap[task.status] || task.status;
-        message = `✏️ <b>CẬP NHẬT CÔNG VIỆC</b>\n\n📌 <b>Công việc:</b> ${task.title}\n👤 <b>Người cập nhật:</b> ${performer}\n📊 <b>Trạng thái:</b> ${newStatus}\nℹ️ <b>Chi tiết:</b> ${extraInfo || 'Cập nhật thông tin'}\n\n👉 Vui lòng truy cập DAFA Manager để xem chi tiết!`;
+        actionSnippet = `- Cập nhật: ${extraInfo || 'Thay đổi thông tin'} (bởi ${performer})`;
       }
 
-      for (const u of targetUsers) {
+      // Add to debounce queue
+      const queueKey = `${companyId}_${taskId}`;
+      if (this.notificationQueue.has(queueKey)) {
+        const existing = this.notificationQueue.get(queueKey);
+        clearTimeout(existing.timeout);
+        existing.updates.push(actionSnippet);
+        // Merge target users to ensure all get notified
+        targetUsers.forEach((u) => {
+          if (!existing.targetUsers.find((tu) => tu.id === u.id)) {
+            existing.targetUsers.push(u);
+          }
+        });
+        
+        // Reset timeout
+        existing.timeout = setTimeout(() => {
+          this.processNotificationQueue(queueKey);
+        }, 20000);
+      } else {
+        const timeout = setTimeout(() => {
+          this.processNotificationQueue(queueKey);
+        }, 20000); // 20s debounce
+
+        this.notificationQueue.set(queueKey, {
+          timeout,
+          companyBotToken: company.telegramBotToken,
+          targetUsers: [...targetUsers],
+          taskTitle: task.title,
+          updates: [actionSnippet],
+        });
+      }
+    } catch (e) {
+      console.error('[TELEGRAM NOTIF ERR]', e);
+    }
+  }
+
+  private async processNotificationQueue(queueKey: string) {
+    try {
+      const data = this.notificationQueue.get(queueKey);
+      if (!data) return;
+      this.notificationQueue.delete(queueKey);
+
+      let message = `✏️ <b>CẬP NHẬT CÔNG VIỆC</b>\n\n📌 <b>Công việc:</b> ${data.taskTitle}\nℹ️ <b>Chi tiết các cập nhật mới:</b>\n`;
+      data.updates.forEach((u) => {
+        message += `${u}\n`;
+      });
+      message += `\n👉 Vui lòng truy cập DAFA Manager để xem chi tiết!`;
+
+      for (const u of data.targetUsers) {
         if (u.telegramChatId) {
-          fetch(`https://api.telegram.org/bot${company.telegramBotToken}/sendMessage`, {
+          fetch(`https://api.telegram.org/bot${data.companyBotToken}/sendMessage`, {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
             body: JSON.stringify({
@@ -525,8 +562,8 @@ export class DafaTasksService {
           }).catch((err) => console.error('[TELEGRAM ERR]', err));
         }
       }
-    } catch (e) {
-      console.error('[TELEGRAM NOTIF ERR]', e);
+    } catch (error) {
+      console.error('[PROCESS QUEUE ERR]', error);
     }
   }
 
