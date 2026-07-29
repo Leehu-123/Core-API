@@ -47,7 +47,7 @@ export class CronsService {
           const tasks = await this.prisma.task.findMany({
             where: {
               companyId: company.id,
-              status: { notIn: ['DONE', 'CANCELLED'] },
+              status: { not: 'DONE' },
               deletedAt: null,
               assignees: {
                 some: { userId: user.id },
