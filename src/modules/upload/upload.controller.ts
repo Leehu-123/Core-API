@@ -16,7 +16,7 @@ export class UploadController {
     FileInterceptor('file', {
       storage: memoryStorage(),
       fileFilter: (req, file, cb) => {
-        if (!file.mimetype.match(/\/(jpg|jpeg|png|gif|webp|pdf|doc|docx|xls|xlsx|csv|txt|zip|rar)$/)) {
+        if (!file.mimetype.match(/\/(jpg|jpeg|png|gif|webp|svg|bmp|ico|tiff|pdf|doc|docx|xls|xlsx|csv|txt|ppt|pptx|zip|rar|7z|tar|gz|mp4|mp3|wav|avi|mov|wmv|flv|mkv|ogg|aac|wma|json|xml|html|css|js|ts|octet-stream|vnd\.ms-excel|vnd\.openxmlformats|vnd\.ms-powerpoint|msword|plain|rtf)$/)) {
           return cb(new BadRequestException('Invalid file type!'), false);
         }
         cb(null, true);
