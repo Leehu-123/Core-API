@@ -5,11 +5,11 @@ import { PaginationDto } from '../../../common/dto/pagination.dto';
 export class QueryBusinessTripDto extends PaginationDto {
   @ApiPropertyOptional({
     description: 'Filter by status',
-    enum: ['PROPOSED', 'APPROVED', 'REJECTED', 'IN_PROGRESS', 'COMPLETED'],
+    enum: ['PROPOSED', 'ACCOUNTANT_APPROVED', 'APPROVED', 'REJECTED', 'IN_PROGRESS', 'COMPLETED'],
   })
   @IsOptional()
   @IsString()
-  @IsIn(['PROPOSED', 'APPROVED', 'REJECTED', 'IN_PROGRESS', 'COMPLETED'])
+  @IsIn(['PROPOSED', 'ACCOUNTANT_APPROVED', 'APPROVED', 'REJECTED', 'IN_PROGRESS', 'COMPLETED'])
   status?: string;
 
   @ApiPropertyOptional({ description: 'Filter by user ID' })

@@ -109,9 +109,10 @@ export class BusinessTripsService {
       newValue: JSON.stringify(trip),
     });
 
-    this.notifications.sendToUsersByRoles(['ADMIN', 'MANAGER'], {
+    // Thông báo cho Kế toán và Admin/Manager khi có đề xuất mới
+    this.notifications.sendToUsersByRoles(['ADMIN', 'MANAGER', 'ACCOUNTANT'], {
       title: 'Đề xuất công tác mới',
-      body: `Đề xuất công tác mới: ${trip.title} đang chờ duyệt.`,
+      body: `Đề xuất công tác mới: ${trip.title} đang chờ Kế toán duyệt chi phí.`,
       url: `/trips/${trip.id}`,
     }).catch(console.error);
 
@@ -139,11 +140,45 @@ export class BusinessTripsService {
     return updated;
   }
 
-  async approve(id: string, companyId: string, userId: string) {
+  // Bước 1: Kế toán duyệt chi phí (PROPOSED → ACCOUNTANT_APPROVED)
+  async accountantApprove(id: string, companyId: string, userId: string) {
     const existing = await this.findOne(id, companyId);
 
     if (existing.status !== 'PROPOSED') {
-      throw new BadRequestException('Only PROPOSED trips can be approved');
+      throw new BadRequestException('Chỉ phiếu ở trạng thái "Đề xuất" mới có thể được Kế toán duyệt');
+    }
+
+    const updated = await this.prisma.businessTrip.update({
+      where: { id },
+      data: { status: 'ACCOUNTANT_APPROVED' },
+    });
+
+    await this.auditLogService.log({
+      companyId,
+      userId,
+      action: 'ACCOUNTANT_APPROVED',
+      entity: 'BusinessTrip',
+      entityId: id,
+      oldValue: JSON.stringify(existing),
+      newValue: JSON.stringify(updated),
+    });
+
+    // Thông báo cho Admin/Manager biết KT đã duyệt, chờ LĐ phê duyệt
+    this.notifications.sendToUsersByRoles(['ADMIN', 'MANAGER'], {
+      title: 'Kế toán đã duyệt chi phí công tác',
+      body: `Phiếu công tác "${existing.title}" đã được Kế toán duyệt chi phí. Chờ Lãnh đạo phê duyệt.`,
+      url: `/trips/${id}`,
+    }).catch(console.error);
+
+    return updated;
+  }
+
+  // Bước 2: Lãnh đạo phê duyệt cuối (ACCOUNTANT_APPROVED → APPROVED)
+  async approve(id: string, companyId: string, userId: string) {
+    const existing = await this.findOne(id, companyId);
+
+    if (existing.status !== 'ACCOUNTANT_APPROVED') {
+      throw new BadRequestException('Chỉ phiếu đã được Kế toán duyệt mới có thể được Lãnh đạo phê duyệt');
     }
 
     const updated = await this.prisma.businessTrip.update({
@@ -167,8 +202,9 @@ export class BusinessTripsService {
   async reject(id: string, companyId: string, userId: string) {
     const existing = await this.findOne(id, companyId);
 
-    if (existing.status !== 'PROPOSED') {
-      throw new BadRequestException('Only PROPOSED trips can be rejected');
+    // Cho phép từ chối từ cả PROPOSED (KT từ chối) lẫn ACCOUNTANT_APPROVED (LĐ từ chối)
+    if (!['PROPOSED', 'ACCOUNTANT_APPROVED'].includes(existing.status)) {
+      throw new BadRequestException('Chỉ phiếu ở trạng thái "Đề xuất" hoặc "KT đã duyệt" mới có thể bị từ chối');
     }
 
     const updated = await this.prisma.businessTrip.update({

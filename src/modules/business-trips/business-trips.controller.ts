@@ -49,12 +49,22 @@ export class BusinessTripsController {
     return this.businessTripsService.update(id, user.companyId, user.sub, dto);
   }
 
+  @Post(':id/accountant-approve')
+  @Permissions('business_trips.write')
+  @UseGuards(PermissionsGuard)
+  @ApiOperation({ summary: 'Accountant approves trip costs (PROPOSED → ACCOUNTANT_APPROVED)' })
+  @ApiResponse({ status: 200, description: 'Trip costs approved by accountant' })
+  @ApiResponse({ status: 400, description: 'Trip is not in PROPOSED status' })
+  accountantApprove(@Param('id', ParseUUIDPipe) id: string, @CurrentUser() user: JwtPayload) {
+    return this.businessTripsService.accountantApprove(id, user.companyId, user.sub);
+  }
+
   @Post(':id/approve')
   @Permissions('business_trips.write')
   @UseGuards(PermissionsGuard)
-  @ApiOperation({ summary: 'Approve a proposed business trip' })
-  @ApiResponse({ status: 200, description: 'Business trip approved' })
-  @ApiResponse({ status: 400, description: 'Trip is not in PROPOSED status' })
+  @ApiOperation({ summary: 'Leader approves trip after accountant (ACCOUNTANT_APPROVED → APPROVED)' })
+  @ApiResponse({ status: 200, description: 'Business trip approved by leader' })
+  @ApiResponse({ status: 400, description: 'Trip is not in ACCOUNTANT_APPROVED status' })
   approve(@Param('id', ParseUUIDPipe) id: string, @CurrentUser() user: JwtPayload) {
     return this.businessTripsService.approve(id, user.companyId, user.sub);
   }
