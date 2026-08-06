@@ -113,6 +113,7 @@ model User {
   notifications    Notification[]
   reportedTasks    Task[]         @relation("ReportToTasks")
   followedTasks    TaskFollower[]
+  companyDocuments CompanyDocument[]
 
   @@map("users")
 }
@@ -1434,3 +1435,27 @@ model Notification {
   @@index([userId])
 }
 
+
+
+enum CompanyDocType {
+  ANNOUNCEMENT
+  DOCUMENT
+}
+
+model CompanyDocument {
+  id          String         @id @default(uuid()) @db.Uuid
+  companyId   String         @map("company_id") @db.Uuid
+  title       String
+  content     String?        @db.Text
+  type        CompanyDocType
+  fileUrl     String?        @map("file_url")
+  fileName    String?        @map("file_name")
+  createdById String         @map("created_by_id") @db.Uuid
+  createdAt   DateTime       @default(now()) @map("created_at")
+  updatedAt   DateTime       @updatedAt @map("updated_at")
+
+  createdBy   User           @relation(fields: [createdById], references: [id])
+
+  @@index([companyId, type])
+  @@map("company_documents")
+}
