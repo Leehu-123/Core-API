@@ -5,6 +5,7 @@ import { AuditLogService } from '../../common/services';
 import { PaginationMeta } from '../../common/dto/api-response.dto';
 import { CreateBusinessTripDto, UpdateBusinessTripDto, QueryBusinessTripDto, AddDailyReportDto } from './dto';
 import { NotificationsService } from '../notifications/notifications.service';
+import { TelegramService } from '../telegram/telegram.service';
 
 @Injectable()
 export class BusinessTripsService {
@@ -12,6 +13,7 @@ export class BusinessTripsService {
     private readonly prisma: PrismaService,
     private readonly auditLogService: AuditLogService,
     private readonly notifications: NotificationsService,
+    private readonly telegram: TelegramService,
   ) {}
 
   async findAll(companyId: string, query: QueryBusinessTripDto) {
@@ -278,6 +280,9 @@ export class BusinessTripsService {
   async addDailyReport(tripId: string, companyId: string, userId: string, dto: AddDailyReportDto) {
     const trip = await this.findOne(tripId, companyId);
 
+    // Get user info for notification
+    const user = await this.prisma.user.findUnique({ where: { id: userId } });
+
     const report = await this.prisma.tripDailyReport.create({
       data: {
         ...dto,
@@ -305,6 +310,26 @@ export class BusinessTripsService {
       entityId: report.id,
       newValue: JSON.stringify(report),
     });
+
+    // Push notification to admin/manager
+    this.notifications.sendToUsersByRoles(['ADMIN', 'MANAGER'], {
+      title: 'Báo cáo công tác mới',
+      body: `${user?.fullName || 'Nhân viên'} vừa cập nhật báo cáo ngày cho chuyến "${trip.title}".`,
+      url: `/trips/${tripId}`,
+    }).catch(console.error);
+
+    // Telegram notification to admin users
+    const reportDate = dto.date ? new Date(dto.date).toLocaleDateString('vi-VN') : 'N/A';
+    const contentPreview = (dto.content || '').substring(0, 100) + ((dto.content || '').length > 100 ? '...' : '');
+    const telegramMsg = [
+      '📋 *Báo cáo công tác mới*',
+      `🧑 Nhân viên: ${user?.fullName || 'N/A'}`,
+      `📍 Chuyến: ${trip.title}`,
+      `🗓 Ngày: ${reportDate}`,
+      `📝 Nội dung: ${contentPreview}`,
+      `👥 KH mới: ${newClientsIncrement} | KH cũ: ${oldClientsIncrement}`,
+    ].join('\n');
+    this.telegram.notifyAdmins(companyId, telegramMsg).catch(console.error);
 
     return report;
   }
