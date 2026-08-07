@@ -468,10 +468,39 @@ export class InventoryService {
       }
     }
 
+    // 3. Incoming stock from expected shipments on or before asOfDate (if provided)
+    const incomingMap = new Map<string, number>();
+    if (asOfDate) {
+      const targetDate = new Date(asOfDate);
+      targetDate.setHours(23, 59, 59, 999);
+
+      const incomingItems = await this.prisma.incomingShipmentItem.groupBy({
+        by: ['productId'],
+        where: {
+          productId: { in: productIds },
+          shipment: {
+            companyId,
+            status: 'EXPECTED',
+            expectedDate: { lte: targetDate },
+          },
+        },
+        _sum: {
+          quantity: true,
+        },
+      });
+
+      for (const item of incomingItems) {
+        if (item.productId) {
+          incomingMap.set(item.productId, item._sum.quantity || 0);
+        }
+      }
+    }
+
     const result = products.map((p) => {
       const physicalStock = physicalMap.get(p.id) || 0;
       const reservedStock = reservedMap.get(p.id) || 0;
-      const availableStock = Math.max(0, physicalStock - reservedStock);
+      const incomingStock = incomingMap.get(p.id) || 0;
+      const availableStock = Math.max(0, physicalStock - reservedStock + incomingStock);
 
       return {
         productId: p.id,
@@ -480,6 +509,7 @@ export class InventoryService {
         unit: p.unit,
         physicalStock,
         reservedStock,
+        incomingStock,
         availableStock,
       };
     });

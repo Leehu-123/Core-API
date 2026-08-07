@@ -114,6 +114,7 @@ model User {
   reportedTasks    Task[]         @relation("ReportToTasks")
   followedTasks    TaskFollower[]
   companyDocuments CompanyDocument[]
+  incomingShipmentsCreated IncomingShipment[] @relation("IncomingShipmentCreatedBy")
 
   @@map("users")
 }
@@ -234,6 +235,7 @@ model Product {
   adjustmentLines   StockAdjustmentLine[]
   quoteItems        QuoteItem[]
   salesOrderItems   SalesOrderItem[]
+  incomingShipmentItems IncomingShipmentItem[]
 
   @@unique([companyId, sku])
   @@index([glassType])
@@ -347,6 +349,7 @@ model Supplier {
 
   products      Product[]
   goodsReceipts GoodsReceipt[]
+  incomingShipments IncomingShipment[]
 
   @@unique([companyId, code])
   @@index([isActive])
@@ -1458,4 +1461,42 @@ model CompanyDocument {
 
   @@index([companyId, type])
   @@map("company_documents")
+}
+
+model IncomingShipment {
+  id           String    @id @default(uuid()) @db.Uuid
+  companyId    String    @map("company_id") @db.Uuid
+  code         String
+  supplierId   String?   @map("supplier_id") @db.Uuid
+  expectedDate DateTime  @map("expected_date")
+  status       String    @default("EXPECTED")
+  note         String?
+  createdById  String    @map("created_by_id") @db.Uuid
+  createdAt    DateTime  @default(now()) @map("created_at")
+  updatedAt    DateTime  @updatedAt @map("updated_at")
+
+  supplier  Supplier?              @relation(fields: [supplierId], references: [id])
+  createdBy User                   @relation("IncomingShipmentCreatedBy", fields: [createdById], references: [id])
+  items     IncomingShipmentItem[]
+
+  @@unique([companyId, code])
+  @@index([expectedDate])
+  @@index([status])
+  @@map("incoming_shipments")
+}
+
+model IncomingShipmentItem {
+  id         String  @id @default(uuid()) @db.Uuid
+  shipmentId String  @map("shipment_id") @db.Uuid
+  productId  String  @map("product_id") @db.Uuid
+  quantity   Int
+  areaM2     Float?  @map("area_m2")
+  note       String?
+
+  shipment IncomingShipment @relation(fields: [shipmentId], references: [id], onDelete: Cascade)
+  product  Product          @relation(fields: [productId], references: [id])
+
+  @@index([shipmentId])
+  @@index([productId])
+  @@map("incoming_shipment_items")
 }
