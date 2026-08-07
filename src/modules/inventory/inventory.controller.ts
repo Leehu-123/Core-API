@@ -1,4 +1,4 @@
-﻿import { Body, Controller, Get, Param, ParseUUIDPipe, Post, Query, UseGuards } from '@nestjs/common';
+import { Body, Controller, Get, Param, ParseUUIDPipe, Post, Query, UseGuards } from '@nestjs/common';
 import { ApiBearerAuth, ApiOperation, ApiResponse, ApiTags } from '@nestjs/swagger';
 import { CurrentUser, JwtPayload, Permissions } from '../../common/decorators';
 import { PermissionsGuard } from '../../common/guards';
@@ -29,6 +29,15 @@ export class InventoryController {
     return this.inventoryService.getLowStockItems(user.companyId);
   }
 
+  @Get('available-stock')
+  @Permissions('products.read')
+  @UseGuards(PermissionsGuard)
+  @ApiOperation({ summary: 'Get available stock after active order reservations' })
+  @ApiResponse({ status: 200, description: 'Available stock' })
+  getAvailableStock(@CurrentUser() user: JwtPayload, @Query('productId') productId?: string, @Query('asOfDate') asOfDate?: string) {
+    return this.inventoryService.getAvailableStock(user.companyId, productId, asOfDate);
+  }
+
   @Get('stats')
   @Permissions('inventory.read')
   @UseGuards(PermissionsGuard)
@@ -46,7 +55,6 @@ export class InventoryController {
   getHistory(@Param('productId', ParseUUIDPipe) productId: string, @CurrentUser() user: JwtPayload) {
     return this.inventoryService.getHistory(productId, user.companyId);
   }
-
 
   @Get('reports/xnt')
   @Permissions('inventory.read')
