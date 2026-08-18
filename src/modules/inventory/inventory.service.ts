@@ -1,4 +1,4 @@
-﻿import { Injectable, NotFoundException, BadRequestException } from '@nestjs/common';
+import { Injectable, NotFoundException, BadRequestException } from '@nestjs/common';
 import { PrismaService } from '../../prisma/prisma.service';
 import { AuditLogService } from '../../common/services';
 import { PaginationMeta } from '../../common/dto/api-response.dto';
@@ -19,7 +19,11 @@ export class InventoryService {
       where.locationId = String(query.locationId);
     }
     if (query.status) {
-      where.status = query.status;
+      if (query.status === 'loi_vo') {
+        where.status = { in: ['vo', 'xuoc', 'me', 'loi', 'cho_xu_ly'] };
+      } else {
+        where.status = query.status;
+      }
     }
 
     const productWhere: any = { isActive: true };
