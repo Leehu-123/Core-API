@@ -1,4 +1,4 @@
-﻿import { Body, Controller, Get, Param, ParseUUIDPipe, Post, Query, UseGuards } from '@nestjs/common';
+import { Body, Controller, Get, Param, ParseUUIDPipe, Post, Query, UseGuards } from '@nestjs/common';
 import { ApiBearerAuth, ApiOperation, ApiResponse, ApiTags } from '@nestjs/swagger';
 import { CurrentUser, JwtPayload, Permissions } from '../../common/decorators';
 import { PermissionsGuard } from '../../common/guards';
@@ -64,5 +64,18 @@ export class InventoryController {
   @ApiResponse({ status: 201, description: 'Transfer successful' })
   transferStock(@Body() dto: TransferStockDto, @CurrentUser() user: JwtPayload) {
     return this.inventoryService.transferStock(user.companyId, user.sub, dto);
+  }
+
+  @Post(':id/status')
+  @Permissions('inventory.write')
+  @UseGuards(PermissionsGuard)
+  @ApiOperation({ summary: 'Update inventory status (condition)' })
+  @ApiResponse({ status: 200, description: 'Status updated' })
+  updateStatus(
+    @Param('id', ParseUUIDPipe) id: string,
+    @Body('status') status: string,
+    @CurrentUser() user: JwtPayload,
+  ) {
+    return this.inventoryService.updateStatus(id, user.companyId, user.sub, status);
   }
 }

@@ -409,4 +409,41 @@ export class InventoryService {
 
     return result;
   }
+
+  async updateStatus(id: string, companyId: string, userId: string, newStatus: string) {
+    const existing = await this.prisma.inventory.findUnique({
+      where: { id, companyId },
+    });
+    if (!existing) throw new NotFoundException('Không tìm thấy tồn kho');
+    if (existing.status === newStatus) return existing;
+
+    const result = await this.prisma.$transaction(async (tx) => {
+      const updated = await tx.inventory.update({
+        where: { id },
+        data: { status: newStatus }
+      });
+
+      await tx.stockMovement.create({
+        data: {
+          companyId,
+          type: 'dieu_chinh',
+          refType: 'stock_adjustment',
+          refId: id,
+          productId: existing.productId,
+          fromLocationId: existing.locationId,
+          toLocationId: existing.locationId,
+          quantity: existing.quantity,
+          statusBefore: existing.status,
+          statusAfter: newStatus,
+          note: 'Cập nhật tình trạng hàng hóa',
+          createdById: userId,
+        }
+      });
+
+      return updated;
+    });
+
+    await this.auditLogService.log({ companyId, userId, action: 'UPDATED_STATUS', entity: 'Inventory', entityId: id });
+    return result;
+  }
 }
