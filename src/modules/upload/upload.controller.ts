@@ -16,7 +16,9 @@ export class UploadController {
     FileInterceptor('file', {
       storage: memoryStorage(),
       fileFilter: (req, file, cb) => {
-        if (!file.mimetype.match(/\/(jpg|jpeg|png|gif|webp|pdf|doc|docx|xls|xlsx|csv|txt|zip|rar)$/)) {
+        const ext = file.originalname.split('.').pop()?.toLowerCase();
+        const allowedExts = ['jpg','jpeg','png','gif','webp','svg','bmp','ico','tiff','pdf','doc','docx','xls','xlsx','csv','txt','ppt','pptx','zip','rar','7z','tar','gz','mp4','mp3','wav','avi','mov','wmv','flv','mkv','ogg','aac','wma','json','xml','html','css','js','ts','rtf'];
+        if (!ext || !allowedExts.includes(ext)) {
           return cb(new BadRequestException('Invalid file type!'), false);
         }
         cb(null, true);
@@ -39,6 +41,7 @@ export class UploadController {
     },
   })
   async uploadFile(@UploadedFile() file: Express.Multer.File) {
+    file.originalname = Buffer.from(file.originalname, 'latin1').toString('utf8');
     if (!file) {
       throw new BadRequestException('No file uploaded');
     }

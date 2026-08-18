@@ -1,4 +1,4 @@
-import { Injectable, NotFoundException } from '@nestjs/common';
+import { Injectable, NotFoundException, ForbiddenException } from '@nestjs/common';
 import { PrismaService } from '../../prisma/prisma.service';
 
 const STATUS_VI_MAP: Record<string, string> = {
@@ -285,7 +285,10 @@ export class DafaTasksService {
         reportTo: { select: { id: true, fullName: true, avatar: true } },
         department: { select: { id: true, name: true } },
         createdBy: { select: { id: true, fullName: true, avatar: true } },
-        attachments: true,
+        attachments: {
+          include: { uploadedBy: { select: { id: true, fullName: true } } },
+          orderBy: { createdAt: 'desc' },
+        },
         comments: {
           include: { author: { select: { id: true, fullName: true, avatar: true } } },
           orderBy: { createdAt: 'desc' },
@@ -565,6 +568,28 @@ export class DafaTasksService {
     } catch (error) {
       console.error('[PROCESS QUEUE ERR]', error);
     }
+  }
+
+  async deleteAttachment(taskId: string, attachmentId: string, userId: string, companyId: string) {
+    // Verify task exists and belongs to company
+    await this.findOne(taskId, companyId);
+    
+    const attachment = await this.prisma.taskAttachment.findFirst({
+      where: { id: attachmentId, taskId },
+    });
+    
+    if (!attachment) {
+      throw new NotFoundException('Attachment not found');
+    }
+    
+    // Only the uploader can delete their own attachment
+    if (attachment.uploadedById !== userId) {
+      throw new ForbiddenException('You can only delete your own attachments');
+    }
+    
+    return this.prisma.taskAttachment.delete({
+      where: { id: attachmentId },
+    });
   }
 
   async remove(id: string, companyId: string) {

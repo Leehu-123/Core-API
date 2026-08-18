@@ -54,6 +54,20 @@ export class DafaTasksController {
     return this.dafaTasksService.addAttachment(id, req.user.sub || req.user.id, body, req.user.companyId);
   }
 
+  @Delete(':id/attachments/:attachmentId')
+  deleteAttachment(
+    @Param('id') id: string,
+    @Param('attachmentId') attachmentId: string,
+    @Request() req: any,
+  ) {
+    return this.dafaTasksService.deleteAttachment(
+      id,
+      attachmentId,
+      req.user.sub || req.user.id,
+      req.user.companyId,
+    );
+  }
+
   @Delete(':id')
   remove(@Param('id') id: string, @Request() req: any) {
     return this.dafaTasksService.remove(id, req.user.companyId);

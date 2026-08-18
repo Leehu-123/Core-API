@@ -410,6 +410,7 @@ export class InventoryService {
     return result;
   }
 
+
   async updateStatus(id: string, companyId: string, userId: string, newStatus: string) {
     const existing = await this.prisma.inventory.findUnique({
       where: { id, companyId },
@@ -444,6 +445,121 @@ export class InventoryService {
     });
 
     await this.auditLogService.log({ companyId, userId, action: 'UPDATED_STATUS', entity: 'Inventory', entityId: id });
+    return result;
+  }
+
+  async getAvailableStock(companyId: string, productId?: string, asOfDate?: string) {
+    const whereProduct: any = { companyId, isActive: true };
+    if (productId) {
+      whereProduct.id = productId;
+    }
+
+    const products = await this.prisma.product.findMany({
+      where: whereProduct,
+      select: {
+        id: true,
+        code: true,
+        name: true,
+        unit: true,
+        glassType: true,
+        thickness: true,
+        color: true,
+      },
+    });
+
+    const productIds = products.map((p) => p.id);
+
+    // 1. Physical stock from inventory table (status = 'tot' or 'thanh_pham')
+    const inventoryGroup = await this.prisma.inventory.groupBy({
+      by: ['productId'],
+      where: {
+        companyId,
+        productId: { in: productIds },
+        status: { in: ['tot', 'thanh_pham'] },
+      },
+      _sum: {
+        quantity: true,
+      },
+    });
+
+    const physicalMap = new Map<string, number>();
+    for (const item of inventoryGroup) {
+      physicalMap.set(item.productId, item._sum.quantity || 0);
+    }
+
+    // 2. Reserved stock from active SalesOrders (NEW, CONFIRMED, DELIVERING, DEBT_TRACKING)
+    const activeOrderItems = await this.prisma.salesOrderItem.groupBy({
+      by: ['productId'],
+      where: {
+        productId: { in: productIds },
+        order: {
+          companyId,
+          status: { in: ['NEW', 'CONFIRMED', 'DELIVERING', 'DEBT_TRACKING'] },
+          deletedAt: null,
+        },
+      },
+      _sum: {
+        quantity: true,
+      },
+    });
+
+    const reservedMap = new Map<string, number>();
+    for (const item of activeOrderItems) {
+      if (item.productId) {
+        reservedMap.set(item.productId, item._sum.quantity || 0);
+      }
+    }
+
+    // 3. Incoming stock from expected shipments on or before asOfDate (if provided)
+    const incomingMap = new Map<string, number>();
+    if (asOfDate) {
+      const targetDate = new Date(asOfDate);
+      targetDate.setHours(23, 59, 59, 999);
+
+      const incomingItems = await this.prisma.incomingShipmentItem.groupBy({
+        by: ['productId'],
+        where: {
+          productId: { in: productIds },
+          shipment: {
+            companyId,
+            status: 'EXPECTED',
+            expectedDate: { lte: targetDate },
+          },
+        },
+        _sum: {
+          quantity: true,
+        },
+      });
+
+      for (const item of incomingItems) {
+        if (item.productId) {
+          incomingMap.set(item.productId, item._sum.quantity || 0);
+        }
+      }
+    }
+
+    const result = products.map((p) => {
+      const physicalStock = physicalMap.get(p.id) || 0;
+      const reservedStock = reservedMap.get(p.id) || 0;
+      const incomingStock = incomingMap.get(p.id) || 0;
+      const availableStock = Math.max(0, physicalStock - reservedStock + incomingStock);
+
+      return {
+        productId: p.id,
+        code: p.code,
+        name: p.name,
+        unit: p.unit,
+        physicalStock,
+        reservedStock,
+        incomingStock,
+        availableStock,
+      };
+    });
+
+    if (productId && result.length > 0) {
+      return result[0];
+    }
+
     return result;
   }
 }
