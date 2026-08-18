@@ -56,7 +56,7 @@ export class TelegramService {
           userRoles: {
             some: {
               role: {
-                name: { in: ['admin', 'ketoan', 'owner'] },
+                name: { in: ['admin', 'ketoan', 'accountant', 'owner', 'manager'] },
               },
             },
           },

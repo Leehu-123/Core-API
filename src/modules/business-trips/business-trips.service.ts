@@ -118,6 +118,14 @@ export class BusinessTripsService {
       url: `/trips/${trip.id}`,
     }).catch(console.error);
 
+    // Gửi thông báo qua Telegram
+    const telegramMsg = `📢 *CÓ ĐỀ XUẤT CÔNG TÁC MỚI*\n\n` +
+      `📌 *Tiêu đề:* ${trip.title}\n` +
+      `📅 *Thời gian:* ${trip.startDate ? new Date(trip.startDate).toLocaleDateString('vi-VN') : 'Chưa rõ'} - ${trip.endDate ? new Date(trip.endDate).toLocaleDateString('vi-VN') : 'Chưa rõ'}\n` +
+      `📝 *Trạng thái:* Chờ kế toán duyệt chi phí\n\n` +
+      `👉 Đăng nhập phần mềm để xem chi tiết.`;
+    this.telegram.notifyAdmins(companyId, telegramMsg).catch(console.error);
+
     return trip;
   }
 
