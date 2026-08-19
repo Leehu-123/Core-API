@@ -54,6 +54,7 @@ import { WorkReportsModule } from './modules/work-reports/work-reports.module';
 import { ReportTemplatesModule } from './modules/report-templates/report-templates.module';
 import { CronsModule } from './modules/crons/crons.module';
 import { CompanyDocumentsModule } from './modules/company-documents/company-documents.module';
+import { DailyTasksModule } from './modules/daily-tasks/daily-tasks.module';
 
 @Module({
   imports: [
@@ -116,6 +117,7 @@ import { CompanyDocumentsModule } from './modules/company-documents/company-docu
     ReportTemplatesModule,
     CronsModule,
     CompanyDocumentsModule,
+    DailyTasksModule,
   ],
   providers: [
     {
