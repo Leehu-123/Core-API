@@ -1,6 +1,7 @@
 import { Injectable, NotFoundException, BadRequestException } from '@nestjs/common';
 import { PrismaService } from '../../prisma/prisma.service';
 import { AuditLogService } from '../../common/services';
+import { TelegramService } from '../telegram/telegram.service';
 import { PaginationMeta } from '../../common/dto/api-response.dto';
 import {
   CreateSalesOrderDto,
@@ -16,6 +17,7 @@ export class SalesOrdersService {
   constructor(
     private readonly prisma: PrismaService,
     private readonly auditLogService: AuditLogService,
+    private readonly telegram: TelegramService,
   ) {}
 
   async findAll(companyId: string, query: QuerySalesOrderDto) {
@@ -176,6 +178,15 @@ export class SalesOrdersService {
       entityId: order.id,
       newValue: JSON.stringify({ code: order.code, status: 'NEW', total }),
     });
+
+    // Notify Warehouse Keeper (thukho)
+    const telegramMsg = `📦 *CÓ ĐƠN HÀNG MỚI ĐƯỢC TẠO*\n\n` +
+      `📌 *Mã ĐH:* ${order.code}\n` +
+      `👤 *Khách hàng:* ${order.customer?.name || 'Không rõ'}\n` +
+      `📦 *Số lượng mã hàng:* ${order.items.length}\n` +
+      `📅 *Ngày tạo:* ${new Date().toLocaleDateString('vi-VN')}\n\n` +
+      `👉 Đăng nhập App Warehouse để chuẩn bị vật tư.`;
+    this.telegram.notifyRoles(companyId, ['thukho'], telegramMsg).catch(console.error);
 
     return order;
   }
