@@ -42,12 +42,12 @@ export class TelegramService {
     }
   }
 
-  async notifyAdmins(companyId: string, message: string): Promise<void> {
+  async notifyRoles(companyId: string, roles: string[], message: string): Promise<void> {
     try {
       const company = await this.prisma.company.findUnique({ where: { id: companyId } });
       const customToken = company?.telegramBotToken || undefined;
 
-      const adminUsers = await this.prisma.user.findMany({
+      const targetUsers = await this.prisma.user.findMany({
         where: {
           companyId,
           telegramChatId: { not: null },
@@ -56,19 +56,23 @@ export class TelegramService {
           userRoles: {
             some: {
               role: {
-                name: { in: ['admin', 'ketoan', 'accountant', 'owner', 'manager'] },
+                name: { in: roles },
               },
             },
           },
         },
       });
-      const sendPromises = adminUsers
-        .filter((u) => u.telegramChatId)
-        .map((u) => this.sendMessage(u.telegramChatId!, message, customToken));
+      const sendPromises = targetUsers.map(user =>
+        this.sendMessage(user.telegramChatId!, message, customToken)
+      );
       await Promise.allSettled(sendPromises);
     } catch (error: any) {
-      this.logger.warn(`Error notifying admins: ${error.message}`);
+      this.logger.error(`Failed to notify roles ${roles.join(',')}: ${error.message}`);
     }
+  }
+
+  async notifyAdmins(companyId: string, message: string): Promise<void> {
+    return this.notifyRoles(companyId, ['admin', 'ketoan', 'accountant', 'owner', 'manager'], message);
   }
 
   async notifyUser(userId: string, message: string): Promise<void> {
